@@ -8,17 +8,13 @@ import android.graphics.Matrix
 import android.os.Build
 import android.util.Log
 import androidx.palette.graphics.Palette
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import java.io.File
 import org.json.JSONArray
 import org.json.JSONObject
 
-
 @SuppressLint("SimpleDateFormat")
 fun Context.createImageFile(): File {
-    //val timeStamp = SimpleDateFormat("yyyy_MM_dd HH:mm:ss").format(Date())
-    val imageFileName = "JPEG_" //+ timeStamp + "_"
+    val imageFileName = "JPEG_"
     val image = File.createTempFile(
         imageFileName, /* prefix */
         ".jpg", /* suffix */
@@ -43,20 +39,6 @@ fun transformListToJson(name: String, list: List<Array<Int>>): JSONObject {
     return jsonObject
 }
 
-fun jsonStringToFriendList(jsonString: String): List<Friend> {
-    val gson = Gson()
-    val friendType = object : TypeToken<List<Friend>>() {}.type
-    val friends: List<Friend> = gson.fromJson(jsonString, friendType)
-
-    return friends.map { friend ->
-        Friend(
-            name = friend.name,
-            friendId = friend.friendId,
-            devices = friend.devices.toMutableList()
-        )
-    }
-}
-
 fun paletteToRgbList(palette: Palette): List<Array<Int>> {
     // Sort swatches by population
     val swatches = palette.swatches
@@ -76,7 +58,7 @@ fun paletteToRgbList(palette: Palette): List<Array<Int>> {
     }
 }
 
-fun resizeBitmap(bitmap: Bitmap, factor: Int = 5): Bitmap { //4
+fun resizeBitmap(bitmap: Bitmap, factor: Int = 5): Bitmap {
     val width = bitmap.width
     val height = bitmap.height
     val scaleWidth = width / factor
@@ -88,7 +70,7 @@ fun resizeBitmap(bitmap: Bitmap, width: Int = 500, height: Int = 500): Bitmap {
     return Bitmap.createScaledBitmap(bitmap, width, height, true)
 }
 
-//TODO: rotate image properly
+// Rotate image for certain manufacturers
 fun rotateImage(bitmap: Bitmap): Bitmap {
     Log.i("util", "Build.MANUFACTURER: ${Build.MANUFACTURER}")
 

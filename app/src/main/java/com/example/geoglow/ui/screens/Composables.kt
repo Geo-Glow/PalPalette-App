@@ -38,7 +38,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -48,7 +47,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -71,37 +69,28 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.vectorResource
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import androidx.core.content.FileProvider
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
-import androidx.palette.graphics.Palette
 import com.example.geoglow.ColorViewModel
 import com.example.geoglow.CustomGalleryContract
 import com.example.geoglow.Friend
-import com.example.geoglow.IDGenerator
-import com.example.geoglow.MqttClient
 import com.example.geoglow.PermissionHandler
 import com.example.geoglow.R
-import com.example.geoglow.SharedPreferencesHelper
+import com.example.geoglow.RestClient
 import com.example.geoglow.createImageFile
-import com.example.geoglow.paletteToRgbList
 import kotlinx.coroutines.delay
 import java.util.Objects
 
 @Composable
-fun MainScreen(navController: NavController, viewModel: ColorViewModel, mqttClient: MqttClient) {
+fun MainScreen(navController: NavController, viewModel: ColorViewModel, restClient: RestClient) {
     val context = LocalContext.current
-    val user: Friend? = SharedPreferencesHelper.getUser(context)
     var expandInfo: Boolean by remember { mutableStateOf(false) }
-    var showPopup by remember { mutableStateOf(true) }
     val permissionHandler = PermissionHandler(context)
     val file = context.createImageFile()
     val imageUri = FileProvider.getUriForFile(
@@ -140,15 +129,6 @@ fun MainScreen(navController: NavController, viewModel: ColorViewModel, mqttClie
         }
     }
 
-    if (user == null && showPopup) {
-        WelcomePopup (
-            mqttClient,
-            onSave = { showPopup = false }
-        )
-    }
-
-    mqttClient.subscribe(user?.friendId ?: "-1")
-
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
@@ -160,15 +140,6 @@ fun MainScreen(navController: NavController, viewModel: ColorViewModel, mqttClie
             verticalAlignment = Alignment.Top,
             horizontalArrangement = Arrangement.End
         ) {
-            if (expandInfo) {
-                InfoCard(
-                    user = user,
-                    onClose = { expandInfo = !expandInfo }
-                )
-
-                Spacer(modifier = Modifier.width(8.dp))
-            }
-
             IconButton(onClick = { expandInfo = !expandInfo }) {
                 Icon(
                     painter = painterResource(id = R.drawable.baseline_info_outline_24),
@@ -304,12 +275,12 @@ fun ImageContent(
     showFriendSelectionPopup: Boolean,
     friendList: List<Friend>,
     viewModel: ColorViewModel,
-    mqttClient: MqttClient
+    restClient: RestClient,
+    navController: NavController
 ) {
     val context = LocalContext.current
     val imageBitmap = colorState.imageBitmap
     val colorList = colorState.colorList
-    val user: Friend? = SharedPreferencesHelper.getUser(context)
 
     Column(
         modifier = Modifier
@@ -324,9 +295,8 @@ fun ImageContent(
             ColorPaletteSection(colorList)
 
             ShareFab {
-                mqttClient.publish(user?.friendId ?: "-1", null)
-                viewModel.refreshFriendList()
-
+                viewModel.refreshFriendList(restClient)
+                Log.i("ImageContent", "Friend List: ${friendList.joinToString(",")}")
                 if (friendList.isNotEmpty()) {
                     viewModel.setShowFriendSelectionPopup(true)
                 } else {
@@ -336,11 +306,11 @@ fun ImageContent(
 
             if (showFriendSelectionPopup) {
                 FriendSelectionPopup(
-                    navController = rememberNavController(), // Provide a NavController
+                    navController = navController, // Provide a NavController
                     viewModel = viewModel,
                     colorPalette = colorList,
                     friends = friendList,
-                    mqttClient = mqttClient,
+                    restClient = restClient,
                     onDismiss = { viewModel.setShowFriendSelectionPopup(false) }
                 )
             }
@@ -368,14 +338,13 @@ fun ColumnScope.ShareFab(onClick: () -> Unit) {
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun ImageScreen(navController: NavController, viewModel: ColorViewModel, mqttClient: MqttClient) {
+fun ImageScreen(navController: NavController, viewModel: ColorViewModel, restClient: RestClient) {
     val lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
     val colorState: ColorViewModel.ColorState by viewModel.colorState.collectAsStateWithLifecycle(
         lifecycleOwner = lifecycleOwner
     )
     val showFriendSelectionPopup by viewModel.showFriendSelectionPopup.collectAsStateWithLifecycle(lifecycleOwner = lifecycleOwner)
-    val friendList by viewModel.friendList.collectAsStateWithLifecycle(lifecycleOwner = lifecycleOwner)
-    
+    val friendList by viewModel.friendList.collectAsStateWithLifecycle(lifecycleOwner)
     BackHandler {
         navController.navigate(Screen.MainScreen.route)
         viewModel.resetColorState()
@@ -391,51 +360,9 @@ fun ImageScreen(navController: NavController, viewModel: ColorViewModel, mqttCli
             showFriendSelectionPopup = showFriendSelectionPopup,
             friendList = friendList,
             viewModel = viewModel,
-            mqttClient = mqttClient
+            restClient = restClient,
+            navController = navController
         )
-    }
-}
-
-@Composable
-fun WelcomePopup(mqttClient: MqttClient, onSave: () -> Unit) {
-    var name by remember { mutableStateOf("") }
-    val context = LocalContext.current
-
-    Dialog(onDismissRequest = {}) {
-        Surface(
-            shape = MaterialTheme.shapes.medium,
-            tonalElevation = 8.dp
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text("Welcome!", style = MaterialTheme.typography.headlineSmall)
-                Text("Please enter your name:")
-                TextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    Button(enabled = name.isNotBlank(), onClick = {
-                        val user = Friend (
-                            name = name,
-                            friendId = IDGenerator.generateUniqueID(),
-                            devices = mutableListOf()
-                        )
-                        SharedPreferencesHelper.setUser(context, user)
-                        mqttClient.publish(user.friendId ?: "-1", user.name)
-                        onSave()
-                    }) {
-                        Text("Save")
-                    }
-                }
-            }
-        }
     }
 }
 
@@ -445,7 +372,7 @@ fun FriendSelectionPopup(
     viewModel: ColorViewModel,
     colorPalette: List<Array<Int>>,
     friends: List<Friend>,
-    mqttClient: MqttClient,
+    restClient: RestClient,
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
@@ -487,11 +414,7 @@ fun FriendSelectionPopup(
                                 text = friend.name,
                                 fontWeight = FontWeight.Medium
                             )
-                            if (friend.devices.isNotEmpty()) {
-                                Text(text = friend.devices.first())
-                            } else {
-                                Text(text = "no devices", fontStyle = FontStyle.Italic)
-                            }
+                            Text(text = friend.tileIds.joinToString(", "))
                         }
                     }
                 }
@@ -499,14 +422,19 @@ fun FriendSelectionPopup(
         },
         confirmButton = {
             Button(enabled = selectedFriends.isNotEmpty(), onClick = {
+                val selectedColors = colorPalette.map { array -> String.format("#%02X%02X%02X", array[0], array[1], array[2]) }
                 selectedFriends.forEach {
-                    if (it.devices.isNotEmpty()) {
-                        mqttClient.publish(it.friendId ?: "-1", it.devices.first(), colorPalette)
-                    } else {
-                        Log.i("Mqtt","Can't publish colors, as no devices are listed.")
+                    restClient.sendColors(it.friendId, selectedColors) { _, error ->
+                        if (error != null) {
+                            Log.e("FriendSelectionPopup", "Failed to send colors: ${error.message}")
+                        } else {
+                            Log.i("FriendSelectionPopup", "Colors sent successfully")
+                        }
                     }
                 }
-                navController.navigate(Screen.MainScreen.route)
+                navController.navigate(route = Screen.MainScreen.route) {
+                    popUpTo(Screen.MainScreen.route) {inclusive = true}
+                }
                 viewModel.resetColorState()
                 Toast.makeText(context, "Color palette was sent", Toast.LENGTH_LONG).show()
             }) {
@@ -519,53 +447,6 @@ fun FriendSelectionPopup(
             }
         }
     )
-}
-
-@Composable
-fun IconText(iconId: Int, text: String) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            painter = painterResource(id = iconId),
-            contentDescription = "icon",
-            modifier = Modifier
-                .padding(end = 10.dp)
-                .size(20.dp),
-            tint = MaterialTheme.colorScheme.onSecondary
-        )
-
-        Text(
-            text = text,
-            fontSize = MaterialTheme.typography.titleSmall.fontSize,
-            fontWeight = FontWeight.Normal
-        )
-    }
-}
-
-@Composable
-fun InfoCard(user: Friend?, onClose: () -> Unit) {
-    Box {
-        Card (
-            modifier = Modifier
-                .padding(top = 10.dp)
-                .clickable { onClose() }
-        ) {
-            Column (
-                modifier = Modifier
-                    //.fillMaxWidth()
-                    .padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.Start
-            ) {
-                IconText(iconId = R.drawable.baseline_tag_24, text = user?.friendId ?: "-1")
-                IconText(iconId = R.drawable.baseline_person_24, text = user?.name ?: "No name")
-                if (user?.devices?.isNotEmpty() == true) {
-                    IconText(iconId = R.drawable.baseline_list_alt_24, text = user.devices.first())
-                }
-            }
-        }
-    }
 }
 
 @Composable

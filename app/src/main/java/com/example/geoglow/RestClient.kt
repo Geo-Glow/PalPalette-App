@@ -1,0 +1,72 @@
+package com.example.geoglow
+
+import android.content.Context
+import com.google.gson.GsonBuilder
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+
+class RestClient(private val context: Context) {
+
+    companion object {
+        private const val TAG = "RESTClient"
+        private const val BASE_URL = "http://192.168.178.82:82"
+    }
+
+    private val apiService: ApiService
+
+    init {
+        val loggingInterceptor = HttpLoggingInterceptor().apply {
+            level = HttpLoggingInterceptor.Level.BODY
+        }
+
+        val client = OkHttpClient.Builder()
+            .addInterceptor(loggingInterceptor)
+            .build()
+
+        val retrofit = Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .client(client)
+            .addConverterFactory(GsonConverterFactory.create(GsonBuilder().create()))
+            .build()
+
+        apiService = retrofit.create(ApiService::class.java)
+    }
+
+    fun getAllFriends(groupId: String?, onResult: (List<Friend>?, Throwable?) -> Unit) {
+        apiService.getAllFriends(groupId).enqueue(object : Callback<List<Friend>> {
+            override fun onResponse(call: Call<List<Friend>>, response: Response<List<Friend>>) {
+                if (response.isSuccessful) {
+                    onResult(response.body(), null)
+                } else {
+                    onResult(null, Throwable(response.errorBody()?.string()))
+                }
+            }
+
+            override fun onFailure(call: Call<List<Friend>>, t: Throwable) {
+                onResult(null, t)
+            }
+        })
+    }
+
+    fun sendColors(friendId: String, colors: List<String>, onResult: (Void?, Throwable?) -> Unit) {
+        val colorRequest = ColorRequest(colors)
+        apiService.sendColors(friendId, colorRequest).enqueue(object : Callback<Void> {
+            override fun onResponse(call: Call<Void>, response: Response<Void>) {
+                if (response.isSuccessful) {
+                    onResult(null, null)
+                } else {
+                    onResult(null, Throwable(response.errorBody()?.string()))
+                }
+            }
+
+            override fun onFailure(call: Call<Void>, t: Throwable) {
+                onResult(null, t)
+            }
+        })
+    }
+}

@@ -31,6 +31,13 @@ class ColorViewModel(application: Application): AndroidViewModel(application) {
     private val _friendList = MutableStateFlow<List<Friend>>(emptyList())
     val friendList = _friendList.asStateFlow()
 
+    init {
+        viewModelScope.launch(Dispatchers.IO) {
+            val cachedFriends = SharedPreferencesHelper.getFriendList(getApplication())
+            _friendList.update { cachedFriends }
+        }
+    }
+
     fun setColorState(uri: Uri, rotate: Boolean = false) {
         viewModelScope.launch(Dispatchers.IO) {
             getApplication<Application>().applicationContext.contentResolver.openInputStream(uri)?.use { stream ->
@@ -57,8 +64,18 @@ class ColorViewModel(application: Application): AndroidViewModel(application) {
         _showFriendSelectionPopup.value = show
     }
 
-    fun refreshFriendList() {
-        // Update Friend List using SharedPreferencesHelper and current context
-        _friendList.update{ SharedPreferencesHelper.getFriendList(getApplication()) }
+    fun refreshFriendList(restClient: RestClient) {
+        viewModelScope.launch(Dispatchers.IO) {
+            restClient.getAllFriends(null) { friends, error ->
+                if (error != null) {
+                    // Handle error
+                } else {
+                    friends?.let { fetchedFriends ->
+                        _friendList.update { fetchedFriends }
+                        SharedPreferencesHelper.setFriendList(getApplication(), fetchedFriends)
+                    }
+                }
+            }
+        }
     }
 }

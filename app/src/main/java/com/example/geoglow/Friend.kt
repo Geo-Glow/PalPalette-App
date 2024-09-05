@@ -1,7 +1,11 @@
 package com.example.geoglow
 
-data class Friend (
+data class Friend(
+    val friendId: String,
+    val tileIds: List<Int>,
+    val groupId: String,
     val name: String,
-    val friendId: String?,
-    val devices: MutableList<String>
+    val lastPing: String
 )
+
+data class ColorRequest(val colors: List<String>)
