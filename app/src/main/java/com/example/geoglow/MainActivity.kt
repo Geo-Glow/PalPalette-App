@@ -6,8 +6,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
+import com.example.geoglow.network.client.RestClient
 import com.example.geoglow.ui.theme.GeoGlowTheme
-import com.example.geoglow.ui.screens.Navigation
+import com.example.geoglow.ui.navigation.Navigation
+import com.example.geoglow.viewmodel.ColorViewModel
 
 class MainActivity : ComponentActivity() {
 

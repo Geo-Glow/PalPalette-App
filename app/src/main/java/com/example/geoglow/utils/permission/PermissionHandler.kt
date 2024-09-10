@@ -1,4 +1,4 @@
-package com.example.geoglow
+package com.example.geoglow.utils.permission
 
 import android.content.Context
 import android.content.pm.PackageManager

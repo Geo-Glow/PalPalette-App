@@ -1,4 +1,4 @@
-package com.example.geoglow
+package com.example.geoglow.data.model
 
 data class Friend(
     val friendId: String,

@@ -1,4 +1,4 @@
-package com.example.geoglow
+package com.example.geoglow.utils.general
 
 import java.util.UUID
 

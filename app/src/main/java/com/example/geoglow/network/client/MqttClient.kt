@@ -1,4 +1,4 @@
-package com.example.geoglow
+package com.example.geoglow.network.client
 /*
 import android.content.Context
 import android.util.Log

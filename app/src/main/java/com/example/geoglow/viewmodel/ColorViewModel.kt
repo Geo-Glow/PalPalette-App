@@ -1,4 +1,4 @@
-package com.example.geoglow
+package com.example.geoglow.viewmodel
 
 import android.app.Application
 import android.graphics.Bitmap
@@ -9,6 +9,11 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.palette.graphics.Palette
+import com.example.geoglow.network.client.RestClient
+import com.example.geoglow.data.model.Friend
+import com.example.geoglow.utils.general.paletteToRgbList
+import com.example.geoglow.utils.general.rotateImage
+import com.example.geoglow.utils.storage.SharedPreferencesHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow

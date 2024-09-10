@@ -1,7 +1,8 @@
-package com.example.geoglow
+package com.example.geoglow.utils.storage
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.example.geoglow.data.model.Friend
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 

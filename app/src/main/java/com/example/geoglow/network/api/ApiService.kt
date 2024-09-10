@@ -1,5 +1,7 @@
-package com.example.geoglow
+package com.example.geoglow.network.api
 
+import com.example.geoglow.data.model.ColorRequest
+import com.example.geoglow.data.model.Friend
 import retrofit2.Call
 import retrofit2.http.*
 

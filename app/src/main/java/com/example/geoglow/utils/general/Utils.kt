@@ -1,4 +1,4 @@
-package com.example.geoglow
+package com.example.geoglow.utils.general
 
 import android.annotation.SuppressLint
 import android.content.Context

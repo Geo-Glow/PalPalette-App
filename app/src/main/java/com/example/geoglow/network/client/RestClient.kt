@@ -1,6 +1,10 @@
-package com.example.geoglow
+package com.example.geoglow.network.client
 
 import android.content.Context
+import com.example.geoglow.network.api.ApiService
+import com.example.geoglow.SendColorsResult
+import com.example.geoglow.data.model.ColorRequest
+import com.example.geoglow.data.model.Friend
 import com.google.gson.GsonBuilder
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
