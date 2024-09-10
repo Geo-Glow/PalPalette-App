@@ -53,19 +53,32 @@ class RestClient(private val context: Context) {
         })
     }
 
-    fun sendColors(friendId: String, colors: List<String>, onResult: (Void?, Throwable?) -> Unit) {
+    fun sendColors(friendId: String, colors: List<String>, onResult: (SendColorsResult, Throwable?) -> Unit) {
         val colorRequest = ColorRequest(colors)
         apiService.sendColors(friendId, colorRequest).enqueue(object : Callback<Void> {
             override fun onResponse(call: Call<Void>, response: Response<Void>) {
-                if (response.isSuccessful) {
-                    onResult(null, null)
-                } else {
-                    onResult(null, Throwable(response.errorBody()?.string()))
+                when (response.code()) {
+                    200 -> onResult(SendColorsResult.SUCCESS, null)
+                    202 -> onResult(SendColorsResult.ACCEPTED, null)
+                    404 -> onResult(
+                        SendColorsResult.FRIEND_NOT_FOUND,
+                        Throwable("Friend not found")
+                    )
+
+                    500 -> onResult(
+                        SendColorsResult.SERVER_ERROR,
+                        Throwable("Internal server error")
+                    )
+
+                    else -> onResult(
+                        SendColorsResult.UNKNOWN_ERROR,
+                        Throwable("Unknown error: ${response.code()}")
+                    )
                 }
             }
 
             override fun onFailure(call: Call<Void>, t: Throwable) {
-                onResult(null, t)
+                onResult(SendColorsResult.UNKNOWN_ERROR, t)
             }
         })
     }

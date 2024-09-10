@@ -83,6 +83,7 @@ import com.example.geoglow.Friend
 import com.example.geoglow.PermissionHandler
 import com.example.geoglow.R
 import com.example.geoglow.RestClient
+import com.example.geoglow.SendColorsResult
 import com.example.geoglow.createImageFile
 import kotlinx.coroutines.delay
 import java.util.Objects
@@ -424,7 +425,29 @@ fun FriendSelectionPopup(
             Button(enabled = selectedFriends.isNotEmpty(), onClick = {
                 val selectedColors = colorPalette.map { array -> String.format("#%02X%02X%02X", array[0], array[1], array[2]) }
                 selectedFriends.forEach {
-                    restClient.sendColors(it.friendId, selectedColors) { _, error ->
+                    restClient.sendColors(it.friendId, selectedColors) { result, error ->
+                        when (result) {
+                            SendColorsResult.SUCCESS -> {
+                                Log.i("FriendSelectionPopup", "Colors sent successfully")
+                                Toast.makeText(context, "Colors sent successfully", Toast.LENGTH_SHORT).show()
+                            }
+                            SendColorsResult.ACCEPTED -> {
+                                Log.i("FriendSelectionPopup", "Friend currently offline, the Message will be processed later")
+                                Toast.makeText(context, "Friend currently offline, the Message will be processed later", Toast.LENGTH_SHORT).show()
+                            }
+                            SendColorsResult.FRIEND_NOT_FOUND -> {
+                                Log.e("FriendSelectionPopup", "Friend not found")
+                                Toast.makeText(context, "Friend not found: ${it.friendId}", Toast.LENGTH_SHORT).show()
+                            }
+                            SendColorsResult.SERVER_ERROR -> {
+                                Log.e("FriendSelectionPopup", "Server error")
+                                Toast.makeText(context, "Server error, please try again", Toast.LENGTH_SHORT).show()
+                            }
+                            SendColorsResult.UNKNOWN_ERROR -> {
+                                Log.e("FriendSelectionPopup", "Unknown error")
+                                Toast.makeText(context, "Unknown error, please try again", Toast.LENGTH_SHORT).show()
+                            }
+                        }
                         if (error != null) {
                             Log.e("FriendSelectionPopup", "Failed to send colors: ${error.message}")
                         } else {
@@ -436,7 +459,7 @@ fun FriendSelectionPopup(
                     popUpTo(Screen.MainScreen.route) {inclusive = true}
                 }
                 viewModel.resetColorState()
-                Toast.makeText(context, "Color palette was sent", Toast.LENGTH_LONG).show()
+                //Toast.makeText(context, "Color palette was sent", Toast.LENGTH_LONG).show()
             }) {
                 Text("Confirm")
             }

@@ -5,7 +5,8 @@ data class Friend(
     val tileIds: List<Int>,
     val groupId: String,
     val name: String,
-    val lastPing: String
+    val lastPing: String,
+    val queue: List<String>
 )
 
 data class ColorRequest(val colors: List<String>)
