@@ -9,4 +9,4 @@ data class Friend(
     val queue: List<String>
 )
 
-data class ColorRequest(val colors: List<String>)
+data class ColorRequest(val fromFriendId: String, val colors: List<String>)

@@ -8,16 +8,22 @@ import androidx.activity.result.launch
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,13 +42,31 @@ import com.example.geoglow.R
 import com.example.geoglow.ui.navigation.Screen
 import com.example.geoglow.utils.general.createImageFile
 import com.example.geoglow.utils.permission.PermissionHandler
+import com.example.geoglow.utils.storage.DataStoreManager
 import com.example.geoglow.viewmodel.ColorViewModel
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import java.util.Objects
 
 @Composable
 fun MainScreen(navController: NavController, viewModel: ColorViewModel) {
     val context = LocalContext.current
+    val dataStoreManager = remember { DataStoreManager(context) }
+    val scope = rememberCoroutineScope()
+
     var expandInfo: Boolean by remember { mutableStateOf(false) }
+    var showFriendIDDialog by remember { mutableStateOf(false) }
+    var friendID by remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) {
+        val exists = dataStoreManager.friendIDExists.first()
+        if (!exists) {
+            showFriendIDDialog = true
+        } else {
+            friendID = dataStoreManager.friendID.first()
+        }
+    }
+
     val permissionHandler = PermissionHandler(context)
     val file = context.createImageFile()
     val imageUri = FileProvider.getUriForFile(
@@ -85,6 +109,16 @@ fun MainScreen(navController: NavController, viewModel: ColorViewModel) {
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
     ) {
+        if (expandInfo) {
+            InfoDialog(
+                friendID = friendID,
+                onDismiss = { expandInfo = false },
+                onReset = {
+                    expandInfo = false
+                    showFriendIDDialog = true
+                })
+        }
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -172,4 +206,76 @@ fun MainScreen(navController: NavController, viewModel: ColorViewModel) {
             }
         }
     }
+
+    if (showFriendIDDialog) {
+        EnterFriendIDDialog(
+            onConfirm = { id ->
+                showFriendIDDialog = false
+                scope.launch {
+                    dataStoreManager.storeFriendID(id)
+                    friendID = id
+                }
+            }
+        )
+    }
+}
+
+@Composable
+fun EnterFriendIDDialog(onConfirm: (String) -> Unit) {
+    var text by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = {},
+        title = { Text(text = "Enter your FriendID") },
+        text = {
+            TextField(
+                value = text,
+                onValueChange = { text = it },
+                label = { Text("FriendID") }
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    onConfirm(text)
+                }
+            ) {
+                Text("OK")
+            }
+        },
+        dismissButton = {
+            Button(
+                onClick = { /* Handle dismiss action if needed */ }
+            ) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@Composable
+fun InfoDialog(friendID: String, onDismiss: () -> Unit, onReset: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = { onDismiss() },
+        title = { Text(text = "Info") },
+        text = {
+            Text(text = "FriendID: $friendID")
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    onDismiss()
+                }
+            ) {
+                Text("OK")
+            }
+        },
+        dismissButton = {
+            Button(
+                onClick = { onReset() }
+            ) {
+                Text("Reset FriendID")
+            }
+        }
+    )
 }

@@ -57,9 +57,9 @@ class RestClient(private val context: Context) {
         })
     }
 
-    fun sendColors(friendId: String, colors: List<String>, onResult: (SendColorsResult, Throwable?) -> Unit) {
-        val colorRequest = ColorRequest(colors)
-        apiService.sendColors(friendId, colorRequest).enqueue(object : Callback<Void> {
+    fun sendColors(toFriendId: String, fromFriendId: String, colors: List<String>, onResult: (SendColorsResult, Throwable?) -> Unit) {
+        val colorRequest = ColorRequest(fromFriendId, colors)
+        apiService.sendColors(toFriendId, colorRequest).enqueue(object : Callback<Void> {
             override fun onResponse(call: Call<Void>, response: Response<Void>) {
                 when (response.code()) {
                     200 -> onResult(SendColorsResult.SUCCESS, null)

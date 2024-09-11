@@ -40,7 +40,9 @@ import com.example.geoglow.network.client.RestClient
 import com.example.geoglow.ui.composable.LoadingAnimation
 import com.example.geoglow.ui.composable.PaletteCard
 import com.example.geoglow.ui.navigation.Screen
+import com.example.geoglow.utils.storage.DataStoreManager
 import com.example.geoglow.viewmodel.ColorViewModel
+import kotlinx.coroutines.flow.first
 
 @Composable
 fun ImageView(
@@ -98,6 +100,7 @@ fun ImageContent(
     friendList: List<Friend>,
     viewModel: ColorViewModel,
     restClient: RestClient,
+    fromFriendId: String,
     navController: NavController
 ) {
     val context = LocalContext.current
@@ -132,6 +135,7 @@ fun ImageContent(
                     colorPalette = colorList,
                     friends = friendList,
                     restClient = restClient,
+                    fromFriendId = fromFriendId,
                     onDismiss = { viewModel.setShowFriendSelectionPopup(false) }
                 )
             }
@@ -168,6 +172,14 @@ fun ImageScreen(
     val colorState: ColorViewModel.ColorState by viewModel.colorState.collectAsStateWithLifecycle(
         lifecycleOwner = lifecycleOwner
     )
+    val context = LocalContext.current
+    val dataStoreManager = remember { DataStoreManager(context) }
+    var fromFriendId by remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) {
+        fromFriendId = dataStoreManager.friendID.first()
+    }
+
     val showFriendSelectionPopup by viewModel.showFriendSelectionPopup.collectAsStateWithLifecycle(lifecycleOwner = lifecycleOwner)
     val friendList by viewModel.friendList.collectAsStateWithLifecycle(lifecycleOwner)
 
@@ -187,6 +199,7 @@ fun ImageScreen(
             friendList = friendList,
             viewModel = viewModel,
             restClient = restClient,
+            fromFriendId = fromFriendId,
             navController = navController
         )
     }
@@ -199,6 +212,7 @@ fun FriendSelectionPopup(
     colorPalette: List<Array<Int>>,
     friends: List<Friend>,
     restClient: RestClient,
+    fromFriendId: String,
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
@@ -247,7 +261,7 @@ fun FriendSelectionPopup(
             Button(enabled = selectedFriends.isNotEmpty(), onClick = {
                 val selectedColors = colorPalette.map { array -> String.format("#%02X%02X%02X", array[0], array[1], array[2]) }
                 selectedFriends.forEach {
-                    restClient.sendColors(it.friendId, selectedColors) { result, error ->
+                    restClient.sendColors(it.friendId, fromFriendId, selectedColors) { result, error ->
                         val message = when (result) {
                             SendColorsResult.SUCCESS -> "Colors sent successfully"
                             SendColorsResult.ACCEPTED -> "Friend currently offline, the Message will be processed later"
