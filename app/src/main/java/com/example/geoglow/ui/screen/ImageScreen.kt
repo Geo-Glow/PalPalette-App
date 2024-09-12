@@ -1,6 +1,7 @@
 package com.example.geoglow.ui.screen
 
 import android.os.Build
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.annotation.RequiresApi
@@ -218,6 +219,15 @@ fun FriendSelectionPopup(
     val context = LocalContext.current
     val selectedFriends = remember { mutableStateListOf<Friend>() }
 
+    fun Color.toLuminance(): Float {
+        return 0.299f * red + 0.587f * green + 0.114f * blue
+    }
+
+    @Composable
+    fun getTextColorForBackground(backgroundColor: Color) : Color {
+        return if (backgroundColor.toLuminance() > 0.5f) Color.Black else Color.White
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Select Friends", style = MaterialTheme.typography.headlineSmall) },
@@ -225,10 +235,19 @@ fun FriendSelectionPopup(
             LazyColumn {
                 items(friends.size) { index ->
                     val friend = friends[index]
+                    val backGroundColor = Color(
+                        red = friend.color[0],
+                        green = friend.color[1],
+                        blue = friend.color[2]
+                    )
+
+                    val textColor = getTextColorForBackground(backGroundColor)
+
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
+                            .background(backGroundColor)
                             .clickable {
                                 if (selectedFriends.contains(friend)) {
                                     selectedFriends.remove(friend)
@@ -246,12 +265,13 @@ fun FriendSelectionPopup(
                                 } else {
                                     selectedFriends.remove(friend)
                                 }
-                            }
+                            },
+                            colors = CheckboxDefaults.colors(checkmarkColor = textColor)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Column {
-                            Text(friend.name, fontWeight = FontWeight.Medium)
-                            Text(friend.tileIds.joinToString(", "))
+                            Text(friend.name, fontWeight = FontWeight.Medium, color = textColor)
+                            Text(friend.tileIds.joinToString(", "), color = textColor)
                         }
                     }
                 }
