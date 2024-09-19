@@ -1,3 +1,11 @@
 <resources>
     <string name="app_name">GeoGlow</string>
+    <string name="button_cancle">Cancle</string>
+    <string name="friendId_enter">Enter your FriendID</string>
+    <string name="button_confirm">Confirm</string>
+    <string name="friendId_reset">Reset FriendID</string>
+    <string name="image_choose">Choose Image</string>
+    <string name="image_take">Take Photo</string>
+    <string name="toast_friends_not_connected">You are not connected to your friends yet.</string>
+    <string name="friends_select">Select Friends</string>
 </resources>

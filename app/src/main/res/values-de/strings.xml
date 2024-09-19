@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">GeoGlow</string>
+    <string name="button_cancle">Abbrechen</string>
+    <string name="friendId_enter">FriendID eingeben</string>
+    <string name="button_confirm">Bestätigen</string>
+    <string name="friendId_reset">FriendID zurücksetzen</string>
+    <string name="image_choose">Bild auswählen</string>
+    <string name="image_take">Foto aufnehmen</string>
+    <string name="toast_friends_not_connected">Du bist noch nicht mit Freunden verbunden.</string>
+    <string name="friends_select">Freunde auswählen</string>
+</resources>

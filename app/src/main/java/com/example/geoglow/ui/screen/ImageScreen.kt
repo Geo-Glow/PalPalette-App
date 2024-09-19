@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -125,7 +126,7 @@ fun ImageContent(
                 if (friendList.isNotEmpty()) {
                     viewModel.setShowFriendSelectionPopup(true)
                 } else {
-                    Toast.makeText(context, "You are not connected to your friends yet.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(R.string.toast_friends_not_connected), Toast.LENGTH_SHORT).show()
                 }
             }
 
@@ -227,10 +228,9 @@ fun FriendSelectionPopup(
     fun getTextColorForBackground(backgroundColor: Color) : Color {
         return if (backgroundColor.toLuminance() > 0.5f) Color.Black else Color.White
     }
-
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Select Friends", style = MaterialTheme.typography.headlineSmall) },
+        title = { Text(text = stringResource(R.string.friends_select), style = MaterialTheme.typography.headlineSmall) },
         text = {
             LazyColumn {
                 items(friends.size) { index ->
@@ -240,7 +240,6 @@ fun FriendSelectionPopup(
                         green = friend.color[1],
                         blue = friend.color[2]
                     )
-
                     val textColor = getTextColorForBackground(backGroundColor)
 
                     Row(
@@ -303,10 +302,10 @@ fun FriendSelectionPopup(
                     }
                 }
             }) {
-                Text("Confirm")
+                Text(text = stringResource(R.string.button_confirm))
             }
         },
-        dismissButton = { Button(onDismiss) { Text("Cancel") } }
+        dismissButton = { Button(onDismiss) { Text(stringResource(R.string.button_cancle)) } }
     )
 }
 

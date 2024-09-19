@@ -29,8 +29,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -149,6 +151,7 @@ fun MainScreen(navController: NavController, viewModel: ColorViewModel) {
                 Image(
                     painter = painterResource(id = R.drawable.geoglow_logo),
                     contentDescription = null,
+                    contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .size(120.dp)
                         .clip(CircleShape)
@@ -178,7 +181,7 @@ fun MainScreen(navController: NavController, viewModel: ColorViewModel) {
                     )
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        text = "Take photo",
+                        text = stringResource(R.string.image_take),
                         fontSize = MaterialTheme.typography.titleMedium.fontSize,
                         fontWeight = FontWeight.Medium
                     )
@@ -198,7 +201,7 @@ fun MainScreen(navController: NavController, viewModel: ColorViewModel) {
                     )
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        text = "Choose image",
+                        text = stringResource(R.string.image_choose),
                         fontSize = MaterialTheme.typography.titleMedium.fontSize,
                         fontWeight = FontWeight.Medium
                     )
@@ -215,18 +218,19 @@ fun MainScreen(navController: NavController, viewModel: ColorViewModel) {
                     dataStoreManager.storeFriendID(id)
                     friendID = id
                 }
-            }
+            },
+            onDismiss = { showFriendIDDialog = false }
         )
     }
 }
 
 @Composable
-fun EnterFriendIDDialog(onConfirm: (String) -> Unit) {
+fun EnterFriendIDDialog(onConfirm: (String) -> Unit, onDismiss: () -> Unit) {
     var text by remember { mutableStateOf("") }
 
     AlertDialog(
-        onDismissRequest = {},
-        title = { Text(text = "Enter your FriendID") },
+        onDismissRequest = { onDismiss() },
+        title = { Text(text = stringResource(R.string.friendId_enter)) },
         text = {
             TextField(
                 value = text,
@@ -240,14 +244,14 @@ fun EnterFriendIDDialog(onConfirm: (String) -> Unit) {
                     onConfirm(text)
                 }
             ) {
-                Text("OK")
+                Text(text = stringResource(R.string.button_confirm))
             }
         },
         dismissButton = {
             Button(
-                onClick = { /* Handle dismiss action if needed */ }
+                onClick = { onDismiss() }
             ) {
-                Text("Cancel")
+                Text(stringResource(R.string.button_cancle))
             }
         }
     )
@@ -274,7 +278,7 @@ fun InfoDialog(friendID: String, onDismiss: () -> Unit, onReset: () -> Unit) {
             Button(
                 onClick = { onReset() }
             ) {
-                Text("Reset FriendID")
+                Text(text = stringResource(R.string.friendId_reset))
             }
         }
     )

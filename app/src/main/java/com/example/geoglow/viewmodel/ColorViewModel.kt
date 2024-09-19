@@ -36,20 +36,13 @@ class ColorViewModel(application: Application): AndroidViewModel(application) {
     private val _friendList = MutableStateFlow<List<Friend>>(emptyList())
     val friendList = _friendList.asStateFlow()
 
-    init {
-        viewModelScope.launch(Dispatchers.IO) {
-            val cachedFriends = SharedPreferencesHelper.getFriendList(getApplication())
-            _friendList.update { cachedFriends }
-        }
-    }
-
     fun setColorState(uri: Uri, rotate: Boolean = false) {
         viewModelScope.launch(Dispatchers.IO) {
             getApplication<Application>().applicationContext.contentResolver.openInputStream(uri)?.use { stream ->
                 val bitmap: Bitmap = BitmapFactory.decodeStream(stream)
                 val rotatedImg = rotateImage(bitmap)
                 val palette = Palette.Builder(bitmap)
-                    .maximumColorCount(20)
+                    .maximumColorCount(10)
                     .generate()
                 _colorState.update { currentState ->
                     currentState.copy(

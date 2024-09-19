@@ -1,6 +1,7 @@
 package com.example.geoglow.network.client
 
 import android.content.Context
+import android.util.Log
 import com.example.geoglow.network.api.ApiService
 import com.example.geoglow.SendColorsResult
 import com.example.geoglow.data.model.ColorRequest
@@ -18,7 +19,7 @@ class RestClient(private val context: Context) {
 
     companion object {
         private const val TAG = "RESTClient"
-        private const val BASE_URL = "http://192.168.178.82:82"
+        private const val BASE_URL = "http://eu1.pitunnel.net:53167"
     }
 
     private val apiService: ApiService
