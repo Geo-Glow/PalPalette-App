@@ -19,7 +19,7 @@ class RestClient(private val context: Context) {
 
     companion object {
         private const val TAG = "RESTClient"
-        private const val BASE_URL = "http://eu1.pitunnel.net:53167"
+        private const val BASE_URL = "http://139.6.56.197"
     }
 
     private val apiService: ApiService
