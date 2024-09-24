@@ -11,6 +11,9 @@ import androidx.palette.graphics.Palette
 import java.io.File
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.Locale
+import java.util.*
+import java.text.SimpleDateFormat
 
 @SuppressLint("SimpleDateFormat")
 fun Context.createImageFile(): File {
@@ -81,4 +84,13 @@ fun rotateImage(bitmap: Bitmap): Bitmap {
     } else {
         return bitmap
     }
+}
+
+fun extractFriendName(friendId: String): String {
+    return friendId.split("@")[0]
+}
+
+fun formatTimestamp(timestamp: Date): String {
+    val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+    return sdf.format(timestamp)
 }

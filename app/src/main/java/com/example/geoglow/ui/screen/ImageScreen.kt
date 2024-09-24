@@ -280,7 +280,7 @@ fun FriendSelectionPopup(
             Button(enabled = selectedFriends.isNotEmpty(), onClick = {
                 val selectedColors = colorPalette.map { array -> String.format("#%02X%02X%02X", array[0], array[1], array[2]) }
                 selectedFriends.forEach {
-                    restClient.sendColors(it.friendId, fromFriendId, selectedColors) { result, error ->
+                    restClient.sendColors(it.friendId, fromFriendId, selectedColors, true) { result, error ->
                         val message = when (result) {
                             SendColorsResult.SUCCESS -> "Colors sent successfully"
                             SendColorsResult.ACCEPTED -> "Friend currently offline, the Message will be processed later"

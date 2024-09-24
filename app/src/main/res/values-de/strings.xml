@@ -9,4 +9,7 @@
     <string name="image_take">Foto aufnehmen</string>
     <string name="toast_friends_not_connected">Du bist noch nicht mit Freunden verbunden.</string>
     <string name="friends_select">Freunde auswählen</string>
+    <string name="view_messages">Nachrichten ansehen</string>
+    <string name="message_from">Von</string>
+    <string name="message_time">Uhrzeit</string>
 </resources>

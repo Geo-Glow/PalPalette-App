@@ -2,14 +2,19 @@ package com.example.geoglow.ui.screen
 
 import android.Manifest
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.launch
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -38,11 +43,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
+import androidx.core.os.bundleOf
 import androidx.navigation.NavController
 import com.example.geoglow.CustomGalleryContract
 import com.example.geoglow.R
+import com.example.geoglow.SendColorsResult
+import com.example.geoglow.data.model.Message
+import com.example.geoglow.network.client.RestClient
 import com.example.geoglow.ui.navigation.Screen
 import com.example.geoglow.utils.general.createImageFile
+import com.example.geoglow.utils.general.extractFriendName
+import com.example.geoglow.utils.general.formatTimestamp
 import com.example.geoglow.utils.permission.PermissionHandler
 import com.example.geoglow.utils.storage.DataStoreManager
 import com.example.geoglow.viewmodel.ColorViewModel
@@ -54,11 +65,14 @@ import java.util.Objects
 fun MainScreen(navController: NavController, viewModel: ColorViewModel) {
     val context = LocalContext.current
     val dataStoreManager = remember { DataStoreManager(context) }
+    val restClient = remember { RestClient(context) }
     val scope = rememberCoroutineScope()
 
     var expandInfo: Boolean by remember { mutableStateOf(false) }
     var showFriendIDDialog by remember { mutableStateOf(false) }
     var friendID by remember { mutableStateOf("") }
+    var showMessagesDialog by remember { mutableStateOf(false) }
+    var messages by remember { mutableStateOf(emptyList<Message>()) }
 
     LaunchedEffect(Unit) {
         val exists = dataStoreManager.friendIDExists.first()
@@ -202,6 +216,28 @@ fun MainScreen(navController: NavController, viewModel: ColorViewModel) {
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
                         text = stringResource(R.string.image_choose),
+                        fontSize = MaterialTheme.typography.titleMedium.fontSize,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                ExtendedFloatingActionButton(
+                    onClick = {
+                        friendID.takeIf { it.isNotEmpty() }?.let { id ->
+                            navController.navigate("${Screen.MessageScreen.route}/$id")
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(0.7f)
+                ) {
+                    Icon(
+                        imageVector = ImageVector.vectorResource(id = R.drawable.baseline_list_alt_24),
+                        contentDescription = "messages"
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = stringResource(R.string.view_messages),
                         fontSize = MaterialTheme.typography.titleMedium.fontSize,
                         fontWeight = FontWeight.Medium
                     )

@@ -1,11 +1,11 @@
 package com.example.geoglow.network.client
 
 import android.content.Context
-import android.util.Log
 import com.example.geoglow.network.api.ApiService
 import com.example.geoglow.SendColorsResult
 import com.example.geoglow.data.model.ColorRequest
 import com.example.geoglow.data.model.Friend
+import com.example.geoglow.data.model.Message
 import com.google.gson.GsonBuilder
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -58,9 +58,9 @@ class RestClient(private val context: Context) {
         })
     }
 
-    fun sendColors(toFriendId: String, fromFriendId: String, colors: List<String>, onResult: (SendColorsResult, Throwable?) -> Unit) {
+    fun sendColors(toFriendId: String, fromFriendId: String, colors: List<String>, shouldSaveMessage: Boolean, onResult: (SendColorsResult, Throwable?) -> Unit) {
         val colorRequest = ColorRequest(fromFriendId, colors)
-        apiService.sendColors(toFriendId, colorRequest).enqueue(object : Callback<Void> {
+        apiService.sendColors(toFriendId, colorRequest, shouldSaveMessage).enqueue(object : Callback<Void> {
             override fun onResponse(call: Call<Void>, response: Response<Void>) {
                 when (response.code()) {
                     200 -> onResult(SendColorsResult.SUCCESS, null)
@@ -84,6 +84,22 @@ class RestClient(private val context: Context) {
 
             override fun onFailure(call: Call<Void>, t: Throwable) {
                 onResult(SendColorsResult.UNKNOWN_ERROR, t)
+            }
+        })
+    }
+
+    fun getMessages(toFriendId: String?, fromFriendId: String?, onResult: (List<Message>?, Throwable?) -> Unit){
+        apiService.getMessages(toFriendId, fromFriendId).enqueue(object: Callback<List<Message>> {
+            override fun onResponse(call: Call<List<Message>>, response: Response<List<Message>>) {
+                if (response.isSuccessful) {
+                    onResult(response.body(), null)
+                } else {
+                    onResult(null, Throwable(response.errorBody()?.string()))
+                }
+            }
+
+            override fun onFailure(call: Call<List<Message>>, t: Throwable) {
+                onResult(null, t)
             }
         })
     }

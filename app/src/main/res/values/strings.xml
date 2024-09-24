@@ -8,4 +8,7 @@
     <string name="image_take">Take Photo</string>
     <string name="toast_friends_not_connected">You are not connected to your friends yet.</string>
     <string name="friends_select">Select Friends</string>
+    <string name="view_messages">View Messages</string>
+    <string name="message_from">From</string>
+    <string name="message_time">Time</string>
 </resources>
