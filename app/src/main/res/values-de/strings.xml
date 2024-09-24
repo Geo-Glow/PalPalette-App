@@ -12,4 +12,12 @@
     <string name="view_messages">Nachrichten ansehen</string>
     <string name="message_from">Von</string>
     <string name="message_time">Uhrzeit</string>
+    <string name="error_fetching_messages">Fehler beim Laden der Nachrichten: %1$s</string>
+    <string name="messages">Nachrichten</string>
+    <string name="back">Zurück</string>
+    <string name="colors_sent_successfully">Farben erfolgreich gesendet</string>
+    <string name="error_sending_colors">Fehler beim Senden der Farben: %1$s</string>
+    <string name="last_24_hours">Nur die letzten 24h</string>
+    <string name="last_week">Nur die letzte Woche</string>
+    <string name="unseen_only">Nur die nicht gesehenen</string>
 </resources>

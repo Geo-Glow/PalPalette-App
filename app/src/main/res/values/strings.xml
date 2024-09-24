@@ -11,4 +11,12 @@
     <string name="view_messages">View Messages</string>
     <string name="message_from">From</string>
     <string name="message_time">Time</string>
+    <string name="error_fetching_messages">Error fetching messages: %1$s</string>
+    <string name="messages">Messages</string>
+    <string name="back">Back</string>
+    <string name="colors_sent_successfully">Colors sent successfully</string>
+    <string name="error_sending_colors">Error sending colors: %1$s</string>
+    <string name="last_24_hours">Only the last 24 hours</string>
+    <string name="last_week">Only the last Week</string>
+    <string name="unseen_only">Unseen Only</string>
 </resources>

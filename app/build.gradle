@@ -70,7 +70,7 @@ dependencies {
     implementation "androidx.palette:palette-ktx:1.0.0"
 
     // Coil
-    implementation "io.coil-kt:coil-compose:1.4.0"
+    implementation 'io.coil-kt:coil-compose:2.7.0'
 
     // ViewModel
     implementation "androidx.lifecycle:lifecycle-viewmodel-compose:2.8.5"
@@ -99,4 +99,7 @@ dependencies {
     androidTestImplementation 'androidx.compose.ui:ui-test-junit4'
     debugImplementation 'androidx.compose.ui:ui-tooling'
     debugImplementation 'androidx.compose.ui:ui-test-manifest'
+
+    // Flow Layout
+    implementation 'com.google.accompanist:accompanist-flowlayout:0.36.0'
 }

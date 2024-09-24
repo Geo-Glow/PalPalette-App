@@ -21,6 +21,8 @@ interface ApiService {
     @GET("messages")
     fun getMessages(
         @Query("toFriendId") toFriendId: String?,
-        @Query("fromFriendId") fromFriendId: String?
+        @Query("fromFriendId") fromFriendId: String?,
+        @Query("startTime") startTime: Long?,
+        @Query("endTime") endTime: Long?
     ): Call<List<Message>>
 }

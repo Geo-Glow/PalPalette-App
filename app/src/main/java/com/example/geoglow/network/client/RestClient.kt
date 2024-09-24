@@ -69,12 +69,10 @@ class RestClient(private val context: Context) {
                         SendColorsResult.FRIEND_NOT_FOUND,
                         Throwable("Friend not found")
                     )
-
                     500 -> onResult(
                         SendColorsResult.SERVER_ERROR,
                         Throwable("Internal server error")
                     )
-
                     else -> onResult(
                         SendColorsResult.UNKNOWN_ERROR,
                         Throwable("Unknown error: ${response.code()}")
@@ -88,8 +86,24 @@ class RestClient(private val context: Context) {
         })
     }
 
-    fun getMessages(toFriendId: String?, fromFriendId: String?, onResult: (List<Message>?, Throwable?) -> Unit){
-        apiService.getMessages(toFriendId, fromFriendId).enqueue(object: Callback<List<Message>> {
+    fun getMessages(toFriendId: String?, fromFriendId: String?, onResult: (List<Message>?, Throwable?) -> Unit) {
+        apiService.getMessages(toFriendId, fromFriendId, null, null).enqueue(object: Callback<List<Message>> {
+            override fun onResponse(call: Call<List<Message>>, response: Response<List<Message>>) {
+                if (response.isSuccessful) {
+                    onResult(response.body(), null)
+                } else {
+                    onResult(null, Throwable(response.errorBody()?.string()))
+                }
+            }
+
+            override fun onFailure(call: Call<List<Message>>, t: Throwable) {
+                onResult(null, t)
+            }
+        })
+    }
+
+    fun getMessagesWithTimeFrame(toFriendId: String?, fromFriendId: String?, startTime: Long?, endTime: Long?, onResult: (List<Message>?, Throwable?) -> Unit) {
+        apiService.getMessages(toFriendId, fromFriendId, startTime, endTime).enqueue(object: Callback<List<Message>> {
             override fun onResponse(call: Call<List<Message>>, response: Response<List<Message>>) {
                 if (response.isSuccessful) {
                     onResult(response.body(), null)
