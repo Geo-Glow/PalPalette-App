@@ -10,8 +10,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -26,37 +29,32 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.node.CanFocusChecker.start
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.geoglow.R
+import com.example.geoglow.ui.screen.ColorBox
 import kotlinx.coroutines.delay
 import java.util.Calendar
 
 @Composable
 fun PaletteCard(colorList: List<Array<Int>>) {
-    // Height of a single row including vertical spacing
-    val rowHeight = 50.dp
     val rowSpacing = 8.dp
-    val numberOfVisibleRows = 5
-
-    // Calculate total height for 5 rows
-    val totalHeight = rowHeight * numberOfVisibleRows + rowSpacing * (numberOfVisibleRows - 1)
+    val scrollState = rememberScrollState()
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(totalHeight)
-            .padding(10.dp),
+            .height(300.dp)
+            .padding(10.dp)
     ) {
-        LazyColumn(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(10.dp),
-            verticalArrangement = Arrangement.spacedBy(rowSpacing),
-            horizontalAlignment = Alignment.CenterHorizontally,
+                .verticalScroll(scrollState)
         ) {
-            items(colorList.chunked(2)) { colorPair ->
+            colorList.chunked(2).forEach { colorPair ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -70,6 +68,7 @@ fun PaletteCard(colorList: List<Array<Int>>) {
                         Spacer(modifier = Modifier.weight(1f))
                     }
                 }
+                Spacer(modifier = Modifier.height(rowSpacing))
             }
         }
     }
