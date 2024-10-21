@@ -39,8 +39,8 @@ import com.example.geoglow.R
 import com.example.geoglow.data.model.Friend
 import com.example.geoglow.SendColorsResult
 import com.example.geoglow.network.client.RestClient
+import com.example.geoglow.ui.composable.DraggablePalette
 import com.example.geoglow.ui.composable.LoadingAnimation
-import com.example.geoglow.ui.composable.PaletteCard
 import com.example.geoglow.ui.navigation.Screen
 import com.example.geoglow.utils.storage.DataStoreManager
 import com.example.geoglow.viewmodel.ColorViewModel
@@ -71,12 +71,15 @@ fun ImageView(
 }
 
 @Composable
-fun ColorPaletteSection(colorList: List<Array<Int>>?) {
-    if (colorList?.isNotEmpty() == true) {
-        PaletteCard(colorList)
-    } else {
-        LoadingAnimation()
-    }
+fun ColorPaletteSection(viewModel: ColorViewModel) {
+    val colorState by viewModel.colorState.collectAsState()
+    colorState.colorList?.let { colorList ->
+        if (colorList.isNotEmpty()) {
+            DraggablePalette(viewModel = viewModel)
+        } else {
+            LoadingAnimation()
+        }
+    } ?: LoadingAnimation()
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -119,10 +122,11 @@ fun ImageContent(
     ) {
         if (colorList != null) {
             ImageView(imageBitmap = imageBitmap, dominantColor = colorList[0])
-            ColorPaletteSection(colorList)
+            ColorPaletteSection(viewModel = viewModel)
 
             ShareFab {
                 viewModel.refreshFriendList(restClient)
+                Log.d("Nick", colorList.toString())
                 if (friendList.isNotEmpty()) {
                     viewModel.setShowFriendSelectionPopup(true)
                 } else {

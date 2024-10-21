@@ -1,92 +1,176 @@
 package com.example.geoglow.ui.composable
 
 import android.app.DatePickerDialog
+import android.content.ClipData
+import android.content.ClipDescription
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.keyframes
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.draganddrop.dragAndDropSource
+import androidx.compose.foundation.draganddrop.dragAndDropTarget
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draganddrop.DragAndDropEvent
+import androidx.compose.ui.draganddrop.DragAndDropTarget
+import androidx.compose.ui.draganddrop.DragAndDropTransferData
+import androidx.compose.ui.draganddrop.mimeTypes
+import androidx.compose.ui.draganddrop.toAndroidDragEvent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.node.CanFocusChecker.start
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.geoglow.R
-import com.example.geoglow.ui.screen.ColorBox
+import com.example.geoglow.viewmodel.ColorViewModel
 import kotlinx.coroutines.delay
 import java.util.Calendar
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun PaletteCard(colorList: List<Array<Int>>) {
-    val rowSpacing = 8.dp
-    val scrollState = rememberScrollState()
+fun DraggablePalette(viewModel: ColorViewModel, modifier: Modifier = Modifier) {
+    val colorState by viewModel.colorState.collectAsState()
+    val colorList = remember { mutableStateListOf<Array<Int>>().apply { addAll(colorState.colorList ?: listOf()) } }
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(300.dp)
+    Column(
+        modifier = modifier
+            .fillMaxSize()
             .padding(10.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(scrollState)
-        ) {
-            colorList.chunked(2).forEach { colorPair ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    colorPair.forEach { colorArray ->
-                        val color = Color(colorArray[0], colorArray[1], colorArray[2])
-                        ColorBox(color, "(${colorArray[0]}, ${colorArray[1]}, ${colorArray[2]})")
+        var draggedBoxIndex by remember { mutableIntStateOf(-1) }
+        val isDragging = remember { mutableStateOf(false) }
+
+        colorList.chunked(2).forEachIndexed { rowIndex, colorPair ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 2.dp), // Reduced padding between rows
+                horizontalArrangement = Arrangement.spacedBy(5.dp) // Reduced space between items in the same row
+            ) {
+                colorPair.forEachIndexed { colIndex, colorArray ->
+                    val globalIndex = rowIndex * 2 + colIndex
+                    val color = Color(colorArray[0], colorArray[1], colorArray[2]).copy(alpha = 1f)
+
+                    val dragSourceModifier = Modifier.dragAndDropSource {
+                        detectTapGestures(
+                            onLongPress = {
+                                isDragging.value = true
+                                draggedBoxIndex = globalIndex
+
+                                startTransfer(
+                                    DragAndDropTransferData(
+                                        clipData = ClipData.newPlainText("index", globalIndex.toString())
+                                    )
+                                )
+                            }
+                        )
                     }
-                    if (colorPair.size == 1) {
-                        Spacer(modifier = Modifier.weight(1f))
-                    }
+
+                    val dropTargetModifier = Modifier.dragAndDropTarget(
+                        shouldStartDragAndDrop = { event ->
+                            event.mimeTypes().contains(ClipDescription.MIMETYPE_TEXT_PLAIN)
+                        },
+                        target = remember {
+                            object : DragAndDropTarget {
+                                override fun onDrop(event: DragAndDropEvent): Boolean {
+                                    val clipDataItem = event.toAndroidDragEvent().clipData
+                                    val draggedIndexText = clipDataItem?.getItemAt(0)?.text?.toString()
+                                    val draggedIndex = draggedIndexText?.toIntOrNull()
+
+                                    if (draggedIndex != null && draggedIndex != globalIndex) {
+                                        colorList.swap(draggedIndex, globalIndex)
+                                        viewModel.updateColorList(colorList.toList())
+                                        //swapColors(colorList, draggedIndex, globalIndex)
+                                    }
+
+                                    isDragging.value = false
+                                    draggedBoxIndex = -1
+                                    return true
+                                }
+                            }
+                        }
+                    )
+
+                    ColorBox(
+                        color,
+                        "",
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(2.dp) // Reduced padding for each color box
+                            .height(50.dp)
+                            .then(dragSourceModifier)
+                            .then(dropTargetModifier)
+                            .background(
+                                color = color.copy(alpha = if (isDragging.value && globalIndex == draggedBoxIndex) 0.5f else 1f),
+                                shape = RoundedCornerShape(20)
+                            )
+                    )
                 }
-                Spacer(modifier = Modifier.height(rowSpacing))
             }
         }
     }
 }
 
+private fun MutableList<Array<Int>>.swap(index1: Int, index2: Int) {
+    val temp = this[index1]
+    this[index1] = this[index2]
+    this[index2] = temp
+}
+
 @Composable
-fun RowScope.ColorBox(color: Color, text: String) {
+fun RowScope.ColorBox(color: Color, text: String, modifier: Modifier = Modifier) {
     Box(
-        modifier = Modifier
-            .background(color = color, shape = RoundedCornerShape(20))
+        modifier = modifier
             .weight(1f)
-            .height(50.dp) // Height of each ColorBox
+            .height(50.dp)
+            .background(color, shape = RoundedCornerShape(20))
+            .padding(10.dp), // Internal padding for text content
+        contentAlignment = Alignment.Center
     ) {
+        // Ensure the color of the icon is contrasting to the background
+        val iconColor = if (color.luminance() > 0.5) Color.Black else Color.White
+
+        // Stack items within the box for an overlay effect
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopEnd) {
+            // Draggable icon positioned at the top right
+            Icon(
+                imageVector = Icons.Default.Menu, // Replace with your drag handle icon, // Example vector, ensure you have this resource
+                contentDescription = "Drag handle",
+                tint = iconColor, // Match the text color
+                modifier = Modifier.size(24.dp) // Dimensions of the icon
+            )
+        }
+
+        // Main text centered
         Text(
-            text = "", // or text,
-            color = if (color.luminance() > 0.5) Color.Black else Color.White,
+            text = text,
+            color = iconColor,
             fontSize = MaterialTheme.typography.bodyLarge.fontSize,
-            fontWeight = androidx.compose.ui.text.font.FontWeight.Normal,
+            fontWeight = FontWeight.Normal,
             modifier = Modifier.padding(10.dp)
         )
     }

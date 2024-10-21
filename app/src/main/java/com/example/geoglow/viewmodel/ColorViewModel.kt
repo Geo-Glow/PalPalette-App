@@ -57,6 +57,14 @@ class ColorViewModel(application: Application): AndroidViewModel(application) {
         }
     }
 
+    fun updateColorList(newList: List<Array<Int>>) {
+        _colorState.update { currentState ->
+            currentState.copy(
+                colorList = newList
+            )
+        }
+    }
+
     fun resetColorState() {
         _colorState.update { ColorState() }
     }
