@@ -8,6 +8,8 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.keyframes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -33,26 +35,38 @@ import java.util.Calendar
 
 @Composable
 fun PaletteCard(colorList: List<Array<Int>>) {
-    Column(
+    // Height of a single row including vertical spacing
+    val rowHeight = 50.dp
+    val rowSpacing = 8.dp
+    val numberOfVisibleRows = 5
+
+    // Calculate total height for 5 rows
+    val totalHeight = rowHeight * numberOfVisibleRows + rowSpacing * (numberOfVisibleRows - 1)
+
+    Box(
         modifier = Modifier
             .fillMaxWidth()
+            .height(totalHeight)
             .padding(10.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        for (row in 0 until 5) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                for (col in 0 until 2) {
-                    val index = row * 2 + col
-                    if (index < colorList.size) {
-                        val colorArray = colorList[index]
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(10.dp),
+            verticalArrangement = Arrangement.spacedBy(rowSpacing),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            items(colorList.chunked(2)) { colorPair ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    colorPair.forEach { colorArray ->
                         val color = Color(colorArray[0], colorArray[1], colorArray[2])
                         ColorBox(color, "(${colorArray[0]}, ${colorArray[1]}, ${colorArray[2]})")
-                    } else {
+                    }
+                    if (colorPair.size == 1) {
                         Spacer(modifier = Modifier.weight(1f))
                     }
                 }
@@ -67,9 +81,10 @@ fun RowScope.ColorBox(color: Color, text: String) {
         modifier = Modifier
             .background(color = color, shape = RoundedCornerShape(20))
             .weight(1f)
+            .height(50.dp) // Height of each ColorBox
     ) {
         Text(
-            text = text,
+            text = "", // or text,
             color = if (color.luminance() > 0.5) Color.Black else Color.White,
             fontSize = MaterialTheme.typography.bodyLarge.fontSize,
             fontWeight = androidx.compose.ui.text.font.FontWeight.Normal,

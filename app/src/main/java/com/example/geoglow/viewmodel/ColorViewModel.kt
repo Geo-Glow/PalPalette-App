@@ -4,6 +4,7 @@ import android.app.Application
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.util.Log
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.lifecycle.AndroidViewModel
@@ -27,6 +28,7 @@ class ColorViewModel(application: Application): AndroidViewModel(application) {
         val colorList: List<Array<Int>>? = null
     )
 
+    private val maxExtractedColors = 16
     private val _colorState = MutableStateFlow(ColorState())
     val colorState = _colorState.asStateFlow()
 
@@ -41,8 +43,9 @@ class ColorViewModel(application: Application): AndroidViewModel(application) {
             getApplication<Application>().applicationContext.contentResolver.openInputStream(uri)?.use { stream ->
                 val bitmap: Bitmap = BitmapFactory.decodeStream(stream)
                 val rotatedImg = rotateImage(bitmap)
+                Log.d("Color", "${rotatedImg.byteCount}")
                 val palette = Palette.Builder(bitmap)
-                    .maximumColorCount(10)
+                    .maximumColorCount(maxExtractedColors)
                     .generate()
                 _colorState.update { currentState ->
                     currentState.copy(

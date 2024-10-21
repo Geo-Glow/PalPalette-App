@@ -270,7 +270,7 @@ fun FriendSelectionPopup(
                         Spacer(modifier = Modifier.width(8.dp))
                         Column {
                             Text(friend.name, fontWeight = FontWeight.Medium, color = textColor)
-                            Text(friend.tileIds.joinToString(", "), color = textColor)
+                            //Text(friend.tileIds.joinToString(", "), color = textColor)
                         }
                     }
                 }

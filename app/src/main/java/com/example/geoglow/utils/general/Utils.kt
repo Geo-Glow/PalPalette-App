@@ -47,10 +47,23 @@ fun paletteToRgbList(palette: Palette): List<Array<Int>> {
     val swatches = palette.swatches
         .sortedByDescending { it.population }
         .toMutableList()
+
+    if (palette.lightVibrantSwatch != null) {
+        swatches.remove(palette.lightVibrantSwatch)
+        swatches.add(0, palette.lightVibrantSwatch!!)
+    }
+
+    if (palette.darkVibrantSwatch != null) {
+        swatches.remove(palette.darkVibrantSwatch)
+        swatches.add(0, palette.darkVibrantSwatch!!)
+    }
+
     // If vibrant swatch exist add it to the front of the swatches list
     if (palette.vibrantSwatch != null) {
+        swatches.remove(palette.vibrantSwatch)
         swatches.add(0, palette.vibrantSwatch!!)
     }
+
     // Convert and return each swatch to RGB array
     return swatches.map { swatch ->
         arrayOf(
@@ -77,7 +90,7 @@ fun resizeBitmap(bitmap: Bitmap, width: Int = 500, height: Int = 500): Bitmap {
 fun rotateImage(bitmap: Bitmap): Bitmap {
     Log.i("util", "Build.MANUFACTURER: ${Build.MANUFACTURER}")
 
-    if (Build.MANUFACTURER == "samsung") {
+    if (Build.MANUFACTURER != "samsung") {
         val rotationDegrees =  90
         val matrix = Matrix().apply { postRotate(rotationDegrees.toFloat()) }
         return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
