@@ -1,6 +1,7 @@
 package com.example.geoglow.ui.screen
 
 import android.Manifest
+import android.net.Uri
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -45,6 +46,8 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import androidx.core.os.bundleOf
 import androidx.navigation.NavController
+import com.drew.imaging.ImageMetadataReader
+import com.drew.metadata.Tag
 import com.example.geoglow.CustomGalleryContract
 import com.example.geoglow.R
 import com.example.geoglow.SendColorsResult
@@ -65,14 +68,11 @@ import java.util.Objects
 fun MainScreen(navController: NavController, viewModel: ColorViewModel) {
     val context = LocalContext.current
     val dataStoreManager = remember { DataStoreManager(context) }
-    val restClient = remember { RestClient(context) }
     val scope = rememberCoroutineScope()
 
     var expandInfo: Boolean by remember { mutableStateOf(false) }
     var showFriendIDDialog by remember { mutableStateOf(false) }
     var friendID by remember { mutableStateOf("") }
-    var showMessagesDialog by remember { mutableStateOf(false) }
-    var messages by remember { mutableStateOf(emptyList<Message>()) }
 
     LaunchedEffect(Unit) {
         val exists = dataStoreManager.friendIDExists.first()
@@ -91,11 +91,28 @@ fun MainScreen(navController: NavController, viewModel: ColorViewModel) {
         file
     )
 
+    val handleImageUri: (Uri) -> Unit = { uri ->
+        try {
+            val inputStream = context.contentResolver.openInputStream(uri)
+            val metadata = inputStream?.let { ImageMetadataReader.readMetadata(it) }
+            val tags = metadata?.directories?.flatMap { it.tags } ?: emptyList()
+
+            // Extract Date/Time if present
+            val dateTimeTag = tags.find { it.tagName == "Date/Time" }
+            val dateTime = dateTimeTag?.description ?: ""
+            Log.d("Metadata", dateTime)
+
+            viewModel.setColorState(uri)
+            navController.navigate(Screen.ImageScreen.route)
+        } catch (e: Exception) {
+            Log.e("MainScreen", "Error reading metadata", e)
+        }
+    }
+
     val galleryLauncher =
         rememberLauncherForActivityResult(contract = CustomGalleryContract()) { uri ->
             if (uri != null) {
-                uri.let(viewModel::setColorState)
-                navController.navigate(Screen.ImageScreen.route)
+                handleImageUri(uri)
             } else {
                 Log.e("Composables", "no picture chosen")
             }
@@ -104,8 +121,7 @@ fun MainScreen(navController: NavController, viewModel: ColorViewModel) {
     val cameraLauncher =
         rememberLauncherForActivityResult(contract = ActivityResultContracts.TakePicture()) { success ->
             if (success) {
-                viewModel.setColorState(imageUri, true)
-                navController.navigate(Screen.ImageScreen.route)
+                handleImageUri(imageUri)
             } else {
                 Log.e("Composables", "couldn't take picture")
             }

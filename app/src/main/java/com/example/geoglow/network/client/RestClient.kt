@@ -3,6 +3,7 @@ package com.example.geoglow.network.client
 import android.content.Context
 import com.example.geoglow.network.api.ApiService
 import com.example.geoglow.SendColorsResult
+import com.example.geoglow.data.model.ColorMultiPost
 import com.example.geoglow.data.model.ColorRequest
 import com.example.geoglow.data.model.Friend
 import com.example.geoglow.data.model.Message
@@ -68,6 +69,38 @@ class RestClient(private val context: Context) {
                     404 -> onResult(
                         SendColorsResult.FRIEND_NOT_FOUND,
                         Throwable("Friend not found")
+                    )
+                    500 -> onResult(
+                        SendColorsResult.SERVER_ERROR,
+                        Throwable("Internal server error")
+                    )
+                    else -> onResult(
+                        SendColorsResult.UNKNOWN_ERROR,
+                        Throwable("Unknown error: ${response.code()}")
+                    )
+                }
+            }
+
+            override fun onFailure(call: Call<Void>, t: Throwable) {
+                onResult(SendColorsResult.UNKNOWN_ERROR, t)
+            }
+        })
+    }
+
+    fun sendColors(fromFriendId: String, toFriendIds: List<String>, colors: List<String>, onResult: (SendColorsResult, Throwable?) -> Unit) {
+        val colorRequest = ColorMultiPost(fromFriendId, toFriendIds, colors)
+        apiService.sendColors(colorRequest).enqueue(object : Callback<Void> {
+            override fun onResponse(call: Call<Void>, response: Response<Void>) {
+                when (response.code()) {
+                    200 -> onResult(SendColorsResult.SUCCESS, null)
+                    207 -> onResult(SendColorsResult.PARTIAL_SUCCESS, null)
+                    400 -> onResult(
+                        SendColorsResult.BAD_REQUEST,
+                        Throwable("Invalid request data")
+                    )
+                    404 -> onResult(
+                        SendColorsResult.FRIEND_NOT_FOUND,
+                        Throwable("One or more friends not found")
                     )
                     500 -> onResult(
                         SendColorsResult.SERVER_ERROR,

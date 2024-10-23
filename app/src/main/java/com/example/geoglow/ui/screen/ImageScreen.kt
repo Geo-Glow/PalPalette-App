@@ -21,7 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -35,6 +35,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.drew.imaging.ImageMetadataReader
 import com.example.geoglow.R
 import com.example.geoglow.data.model.Friend
 import com.example.geoglow.SendColorsResult
@@ -283,14 +284,15 @@ fun FriendSelectionPopup(
         confirmButton = {
             Button(enabled = selectedFriends.isNotEmpty(), onClick = {
                 val selectedColors = colorPalette.map { array -> String.format("#%02X%02X%02X", array[0], array[1], array[2]) }
-                selectedFriends.forEach {
-                    restClient.sendColors(it.friendId, fromFriendId, selectedColors, true) { result, error ->
+                restClient.sendColors(fromFriendId, selectedFriends.map { it.friendId }, selectedColors) { result, error ->
                         val message = when (result) {
                             SendColorsResult.SUCCESS -> "Colors sent successfully"
                             SendColorsResult.ACCEPTED -> "Friend currently offline, the Message will be processed later"
-                            SendColorsResult.FRIEND_NOT_FOUND -> "Friend not found: ${it.friendId}"
+                            SendColorsResult.FRIEND_NOT_FOUND -> "Friend not found: $fromFriendId"
                             SendColorsResult.SERVER_ERROR -> "Server error, please try again"
                             SendColorsResult.UNKNOWN_ERROR -> "Unknown error, please try again"
+                            SendColorsResult.PARTIAL_SUCCESS -> "Partial success, some friends were not found"
+                            SendColorsResult.BAD_REQUEST -> "Invalid request data"
                         }
 
                         if (error != null) {
@@ -304,28 +306,10 @@ fun FriendSelectionPopup(
                         }
                         viewModel.resetColorState()
                     }
-                }
             }) {
                 Text(text = stringResource(R.string.button_confirm))
             }
         },
         dismissButton = { Button(onDismiss) { Text(stringResource(R.string.button_cancle)) } }
     )
-}
-
-@Composable
-fun RowScope.ColorBox(color: Color, text: String) {
-    Box(
-        modifier = Modifier
-            .background(color = color, shape = RoundedCornerShape(20))
-            .weight(1f)
-    ) {
-        Text(
-            text = text,
-            color = if (color.luminance() > 0.5) Color.Black else Color.White,
-            fontSize = MaterialTheme.typography.bodyLarge.fontSize,
-            fontWeight = FontWeight.Normal,
-            modifier = Modifier.padding(10.dp)
-        )
-    }
 }

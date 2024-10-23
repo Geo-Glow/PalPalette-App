@@ -1,5 +1,6 @@
 package com.example.geoglow.network.api
 
+import com.example.geoglow.data.model.ColorMultiPost
 import com.example.geoglow.data.model.ColorRequest
 import com.example.geoglow.data.model.Friend
 import com.example.geoglow.data.model.Message
@@ -10,6 +11,11 @@ interface ApiService {
 
     @GET("friends")
     fun getAllFriends(@Query("groupId") groupId: String?): Call<List<Friend>>
+
+    @POST("friends/colors")
+    fun sendColors(
+        @Body colorRequest: ColorMultiPost
+    ): Call<Void>
 
     @POST("friends/{friendId}/colors")
     fun sendColors(
