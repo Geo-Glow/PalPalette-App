@@ -1,6 +1,7 @@
 package com.example.geoglow.ui.screen
 
 import android.Manifest
+import android.media.ExifInterface
 import android.net.Uri
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -47,6 +48,7 @@ import com.example.geoglow.utils.general.createImageFile
 import com.example.geoglow.utils.permission.PermissionHandler
 import com.example.geoglow.utils.storage.DataStoreManager
 import com.example.geoglow.viewmodel.ColorViewModel
+import com.google.gson.Gson
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.util.Objects
@@ -80,22 +82,26 @@ fun MainScreen(navController: NavController, viewModel: ColorViewModel) {
 
     val handleImageUri: (Uri) -> Unit = { uri ->
         try {
+            // List of Tags that should be extracted from the image metadata
+            val desiredTags = listOf(
+                ExifInterface.TAG_DATETIME,
+            )
+
             val inputStream = context.contentResolver.openInputStream(uri)
-            val metadata = inputStream?.let { ImageMetadataReader.readMetadata(it) }
-            val tags = metadata?.directories?.flatMap { it.tags } ?: emptyList()
-            if (metadata != null) {
-                for (directory in metadata.directories) {
-                    for (t in directory.tags) {
-                        Log.d("Metadata", "${t.tagName}: ${t.description}")
-                    }
+            val exif = inputStream?.let { ExifInterface(it) }
+
+            val jsonMap = mutableMapOf<String, String>()
+
+            desiredTags.forEach { tag ->
+                exif?.getAttribute(tag)?.let { value ->
+                    jsonMap[tag] = value
                 }
             }
-            // Extract Date/Time if present
-            val dateTimeTag = tags.find { it.tagName == "Date/Time" }
-            val dateTime = dateTimeTag?.description ?: ""
-            Log.d("Metadata", dateTime)
 
-            viewModel.setColorState(uri)
+            val gson = Gson()
+            val jsonString = gson.toJson(jsonMap)
+
+            viewModel.setColorState(uri, jsonString)
             navController.navigate(Screen.ImageScreen.route)
         } catch (e: Exception) {
             Log.e("MainScreen", "Error reading metadata", e)

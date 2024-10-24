@@ -127,7 +127,6 @@ fun ImageContent(
 
             ShareFab {
                 viewModel.refreshFriendList(restClient)
-                Log.d("Nick", colorList.toString())
                 if (friendList.isNotEmpty()) {
                     viewModel.setShowFriendSelectionPopup(true)
                 } else {
@@ -284,7 +283,7 @@ fun FriendSelectionPopup(
         confirmButton = {
             Button(enabled = selectedFriends.isNotEmpty(), onClick = {
                 val selectedColors = colorPalette.map { array -> String.format("#%02X%02X%02X", array[0], array[1], array[2]) }
-                restClient.sendColors(fromFriendId, selectedFriends.map { it.friendId }, selectedColors) { result, error ->
+                restClient.sendColors(fromFriendId, selectedFriends.map { it.friendId }, selectedColors, viewModel.colorState.value.imageMetadataJson) { result, error ->
                         val message = when (result) {
                             SendColorsResult.SUCCESS -> "Colors sent successfully"
                             SendColorsResult.ACCEPTED -> "Friend currently offline, the Message will be processed later"

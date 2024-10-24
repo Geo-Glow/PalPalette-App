@@ -25,7 +25,8 @@ class ColorViewModel(application: Application): AndroidViewModel(application) {
 
     data class ColorState(
         val imageBitmap: ImageBitmap? = null,
-        val colorList: List<Array<Int>>? = null
+        val colorList: List<Array<Int>>? = null,
+        val imageMetadataJson: String = ""
     )
 
     private val maxExtractedColors = 16
@@ -63,11 +64,10 @@ class ColorViewModel(application: Application): AndroidViewModel(application) {
         return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
     }
 
-    fun setColorState(uri: Uri) {
+    fun setColorState(uri: Uri, imageMetadata: String) {
         viewModelScope.launch(Dispatchers.IO) {
             getApplication<Application>().applicationContext.contentResolver.openInputStream(uri)?.use { stream ->
                 val bitmap: Bitmap = BitmapFactory.decodeStream(stream)
-
                 val orientation = getExifOrientation(uri)
                 val correctlyOrientedBitmap = rotateBitmap(bitmap, orientation)
 
@@ -77,7 +77,8 @@ class ColorViewModel(application: Application): AndroidViewModel(application) {
                 _colorState.update { currentState ->
                     currentState.copy(
                         imageBitmap = correctlyOrientedBitmap.asImageBitmap(),
-                        colorList = paletteToRgbList(palette)
+                        colorList = paletteToRgbList(palette),
+                        imageMetadataJson = imageMetadata
                     )
                 }
             }
