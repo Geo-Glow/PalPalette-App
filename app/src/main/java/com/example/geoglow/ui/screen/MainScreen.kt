@@ -3,19 +3,14 @@ package com.example.geoglow.ui.screen
 import android.Manifest
 import android.net.Uri
 import android.util.Log
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.launch
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -25,7 +20,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,19 +38,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
-import androidx.core.os.bundleOf
 import androidx.navigation.NavController
 import com.drew.imaging.ImageMetadataReader
-import com.drew.metadata.Tag
 import com.example.geoglow.CustomGalleryContract
 import com.example.geoglow.R
-import com.example.geoglow.SendColorsResult
-import com.example.geoglow.data.model.Message
-import com.example.geoglow.network.client.RestClient
 import com.example.geoglow.ui.navigation.Screen
 import com.example.geoglow.utils.general.createImageFile
-import com.example.geoglow.utils.general.extractFriendName
-import com.example.geoglow.utils.general.formatTimestamp
 import com.example.geoglow.utils.permission.PermissionHandler
 import com.example.geoglow.utils.storage.DataStoreManager
 import com.example.geoglow.viewmodel.ColorViewModel
@@ -96,7 +83,13 @@ fun MainScreen(navController: NavController, viewModel: ColorViewModel) {
             val inputStream = context.contentResolver.openInputStream(uri)
             val metadata = inputStream?.let { ImageMetadataReader.readMetadata(it) }
             val tags = metadata?.directories?.flatMap { it.tags } ?: emptyList()
-
+            if (metadata != null) {
+                for (directory in metadata.directories) {
+                    for (t in directory.tags) {
+                        Log.d("Metadata", "${t.tagName}: ${t.description}")
+                    }
+                }
+            }
             // Extract Date/Time if present
             val dateTimeTag = tags.find { it.tagName == "Date/Time" }
             val dateTime = dateTimeTag?.description ?: ""
