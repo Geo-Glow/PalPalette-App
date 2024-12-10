@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">GeoGlow</string>
     <string name="button_cancle">Abbrechen</string>
     <string name="friendId_enter">FriendID eingeben</string>
     <string name="button_confirm">Bestätigen</string>

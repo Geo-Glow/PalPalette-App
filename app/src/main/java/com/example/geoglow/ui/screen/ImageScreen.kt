@@ -1,7 +1,6 @@
 package com.example.geoglow.ui.screen
 
 import android.os.Build
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.annotation.RequiresApi
@@ -9,19 +8,45 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FabPosition
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -35,10 +60,9 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.drew.imaging.ImageMetadataReader
 import com.example.geoglow.R
-import com.example.geoglow.data.model.Friend
 import com.example.geoglow.SendColorsResult
+import com.example.geoglow.data.model.Friend
 import com.example.geoglow.network.client.RestClient
 import com.example.geoglow.ui.composable.DraggablePalette
 import com.example.geoglow.ui.composable.LoadingAnimation
@@ -125,15 +149,6 @@ fun ImageContent(
             ImageView(imageBitmap = imageBitmap, dominantColor = colorList[0])
             ColorPaletteSection(viewModel = viewModel)
 
-            ShareFab {
-                viewModel.refreshFriendList(restClient)
-                if (friendList.isNotEmpty()) {
-                    viewModel.setShowFriendSelectionPopup(true)
-                } else {
-                    Toast.makeText(context, context.getString(R.string.toast_friends_not_connected), Toast.LENGTH_SHORT).show()
-                }
-            }
-
             if (showFriendSelectionPopup) {
                 FriendSelectionPopup(
                     navController = navController,
@@ -152,12 +167,10 @@ fun ImageContent(
 }
 
 @Composable
-fun ColumnScope.ShareFab(onClick: () -> Unit) {
+fun ShareFab(onClick: () -> Unit) {
     FloatingActionButton(
         onClick = onClick,
         modifier = Modifier
-            .align(alignment = Alignment.End)
-            .padding(end = 10.dp, bottom = 10.dp)
             .size(50.dp)
     ) {
         Icon(
@@ -186,7 +199,7 @@ fun ImageScreen(
         fromFriendId = dataStoreManager.friendID.first()
     }
 
-    val showFriendSelectionPopup by viewModel.showFriendSelectionPopup.collectAsStateWithLifecycle(lifecycleOwner = lifecycleOwner)
+    val showFriendSelectionPopup by viewModel.showFriendSelectionPopup.collectAsStateWithLifecycle(lifecycleOwner)
     val friendList by viewModel.friendList.collectAsStateWithLifecycle(lifecycleOwner)
 
     BackHandler {
@@ -194,20 +207,40 @@ fun ImageScreen(
         viewModel.resetColorState()
     }
 
-    Column {
-        ImageTopAppBar {
-            navController.navigate(Screen.MainScreen.route)
-            viewModel.resetColorState()
+    Scaffold(
+        topBar = {
+            ImageTopAppBar {
+                navController.navigate(Screen.MainScreen.route)
+                viewModel.resetColorState()
+            }
+        },
+        floatingActionButton = {
+            ShareFab {
+                viewModel.refreshFriendList(restClient)
+                if (friendList.isNotEmpty()) {
+                    viewModel.setShowFriendSelectionPopup(true)
+                } else {
+                    Toast.makeText(context, context.getString(R.string.toast_friends_not_connected), Toast.LENGTH_SHORT).show()
+                }
+            }
+        },
+        floatingActionButtonPosition = FabPosition.End
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            ImageContent(
+                colorState = colorState,
+                showFriendSelectionPopup = showFriendSelectionPopup,
+                friendList = friendList,
+                viewModel = viewModel,
+                restClient = restClient,
+                fromFriendId = fromFriendId,
+                navController = navController
+            )
         }
-        ImageContent(
-            colorState = colorState,
-            showFriendSelectionPopup = showFriendSelectionPopup,
-            friendList = friendList,
-            viewModel = viewModel,
-            restClient = restClient,
-            fromFriendId = fromFriendId,
-            navController = navController
-        )
     }
 }
 

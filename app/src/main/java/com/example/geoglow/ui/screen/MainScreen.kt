@@ -187,7 +187,7 @@ fun MainScreen(navController: NavController, viewModel: ColorViewModel) {
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "GeoGlow",
+                    text = stringResource(R.string.app_name),
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Bold
                 )
