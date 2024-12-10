@@ -1,5 +1,6 @@
 package com.example.geoglow.ui.screen
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -42,16 +43,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.geoglow.R
 import com.example.geoglow.SendColorsResult
 import com.example.geoglow.data.model.Message
 import com.example.geoglow.network.client.RestClient
-import com.example.geoglow.ui.composable.CustomDatePickerDialog
 import com.example.geoglow.utils.general.extractFriendName
 import com.example.geoglow.utils.general.formatTimestamp
 import com.example.geoglow.utils.storage.SharedPreferencesHelper
+import java.util.Date
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,6 +72,10 @@ fun MessageScreen(navController: NavController, friendId: String) {
     var endDate by remember { mutableLongStateOf(System.currentTimeMillis()) }
 
     var showCustomDatePicker by remember { mutableStateOf(false) }
+    var friends: Map<String, String>? = null
+    restClient.getAllFriends("", onResult = { friendList, _ ->
+        friends = friendList?.associate { it.friendId to it.name }
+    })
 
     fun fetchMessages() {
         isLoading = true
@@ -168,7 +174,7 @@ fun MessageScreen(navController: NavController, friendId: String) {
                     CircularProgressIndicator()
                 }
             } else {
-                MessageList(messages = messages, onMessageClick = { message ->
+                MessageList(friends = friends, messages = messages, onMessageClick = { message ->
                     prefsHelper.addSeenMessages(context, message.id)
                     restClient.sendColors(
                         toFriendId = message.toFriendId,
@@ -227,25 +233,7 @@ fun MessageFilters(
             checked = lastWeek,
             onCheckedChange = onLastWeekChange
         )
-        /*Spacer(modifier = Modifier.height(8.dp))
-        FilterSwitch(
-            label = "Custom Period",
-            checked = customPeriod,
-            onCheckedChange = {
-                onCustomPeriodChange(it)
-                if (it) {
-                    showCustomDatePicker = true
-                }
-            }
-        )
-        if (showCustomDatePicker) {
-            CustomDatePickerDialog(
-                initialStartDate = initialStartDate,
-                initialEndDate = initialEndDate,
-                onDismissRequest = { showCustomDatePicker = false },
-                onDatesSelected = onCustomPeriodSelected
-            )
-        }*/
+
         Spacer(modifier = Modifier.height(8.dp))
         FilterSwitch(
             label = stringResource(R.string.unseen_only),
@@ -293,20 +281,27 @@ fun FilterSwitch(
 }
 
 @Composable
-fun MessageList(messages: List<Message>, onMessageClick: (Message) -> Unit) {
+fun MessageList(friends: Map<String, String>?, messages: List<Message>, onMessageClick: (Message) -> Unit) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(vertical = 8.dp, horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         items(messages) { message ->
-            MessageItem(message = message, onClick = { onMessageClick(message)})
+            val friendName = friends?.get(message.fromFriendId)
+            if (friendName != null) {
+                MessageItem(
+                    fromFriend = friendName,
+                    timestamp = message.timestamp,
+                    onClick = { onMessageClick(message) },
+                )
+            }
         }
     }
 }
 
 @Composable
-fun MessageItem(message: Message, onClick: () -> Unit) {
+fun MessageItem(fromFriend: String, timestamp: Date, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -315,8 +310,8 @@ fun MessageItem(message: Message, onClick: () -> Unit) {
         shape = RoundedCornerShape(8.dp),
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-            Text(text = "${stringResource(R.string.message_from)}: ${extractFriendName(message.fromFriendId)}")
-            Text(text = "${stringResource(R.string.message_time)}: ${formatTimestamp(message.timestamp)}")
+            Text(text = "${stringResource(R.string.message_from)}: $fromFriend")
+            Text(text = "${stringResource(R.string.message_time)}: ${formatTimestamp(timestamp)}")
         }
     }
 }
