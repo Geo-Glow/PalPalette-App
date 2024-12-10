@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">GeoGlow</string>
+    <string name="app_name" translatable="false">PalPalette</string>
     <string name="button_cancle">Cancle</string>
     <string name="friendId_enter">Enter your FriendID</string>
     <string name="button_confirm">Confirm</string>
