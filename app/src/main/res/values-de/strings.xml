@@ -19,4 +19,5 @@
     <string name="last_24_hours">Nur die letzten 24h</string>
     <string name="last_week">Nur die letzte Woche</string>
     <string name="unseen_only">Nur die nicht gesehenen</string>
+    <string name="invalid_id">Ungültige Freundes ID</string>
 </resources>

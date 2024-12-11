@@ -59,6 +59,22 @@ class RestClient(private val context: Context) {
         })
     }
 
+    fun getFriendById(friendId: String, onResult: (Friend?, Throwable?) -> Unit) {
+        apiService.getFriendById(friendId).enqueue(object : Callback<Friend> {
+            override fun onResponse(call: Call<Friend>, response: Response<Friend>) {
+                if (response.isSuccessful) {
+                    onResult(response.body(), null)
+                } else {
+                    onResult(null, Throwable(response.errorBody()?.string()))
+                }
+            }
+
+            override fun onFailure(call: Call<Friend>, t: Throwable) {
+                onResult(null, t)
+            }
+        })
+    }
+
     fun sendColors(toFriendId: String, fromFriendId: String, colors: List<String>, shouldSaveMessage: Boolean, onResult: (SendColorsResult, Throwable?) -> Unit) {
         val colorRequest = ColorRequest(fromFriendId, colors)
         apiService.sendColors(toFriendId, colorRequest, shouldSaveMessage).enqueue(object : Callback<Void> {

@@ -12,6 +12,9 @@ interface ApiService {
     @GET("friends")
     fun getAllFriends(@Query("groupId") groupId: String?): Call<List<Friend>>
 
+    @GET("friends/{friendId}")
+    fun getFriendById(@Path("friendId") friendId: String): Call<Friend>
+
     @POST("friends/colors")
     fun sendColors(
         @Body colorRequest: ColorMultiPost
