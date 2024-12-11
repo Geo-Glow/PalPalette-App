@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Color
 import androidx.palette.graphics.Palette
-import com.example.geoglow.network.client.RestClient
 import java.io.File
 import java.util.Locale
 import java.util.*
@@ -51,10 +50,6 @@ fun paletteToRgbList(palette: Palette): List<Array<Int>> {
             Color.blue(swatch.rgb)
         )
     }
-}
-
-fun extractFriendName(friendId: String): String {
-    return friendId.split("@")[0]
 }
 
 fun formatTimestamp(timestamp: Date): String {

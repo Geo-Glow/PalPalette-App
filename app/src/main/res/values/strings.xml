@@ -19,4 +19,5 @@
     <string name="last_24_hours">Only the last 24 hours</string>
     <string name="last_week">Only the last Week</string>
     <string name="unseen_only">Unseen Only</string>
+    <string name="invalid_id">Invalid FriendID</string>
 </resources>

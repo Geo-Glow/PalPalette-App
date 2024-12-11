@@ -1,6 +1,5 @@
 package com.example.geoglow.ui.screen
 
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -33,6 +32,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -43,22 +43,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.geoglow.R
 import com.example.geoglow.SendColorsResult
 import com.example.geoglow.data.model.Message
 import com.example.geoglow.network.client.RestClient
-import com.example.geoglow.utils.general.extractFriendName
 import com.example.geoglow.utils.general.formatTimestamp
+import com.example.geoglow.utils.storage.DataStoreManager
 import com.example.geoglow.utils.storage.SharedPreferencesHelper
+import com.example.geoglow.viewmodel.MessageViewModel
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 import java.util.Date
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MessageScreen(navController: NavController, friendId: String) {
+fun MessageScreen(navController: NavController, friendId: String, messageViewModel: MessageViewModel) {
     val context = LocalContext.current
+    val groupId by messageViewModel.groupId.collectAsState()
     val restClient = remember { RestClient(context) }
     val prefsHelper = remember { SharedPreferencesHelper }
 
@@ -73,7 +77,7 @@ fun MessageScreen(navController: NavController, friendId: String) {
 
     var showCustomDatePicker by remember { mutableStateOf(false) }
     var friends: Map<String, String>? = null
-    restClient.getAllFriends("", onResult = { friendList, _ ->
+    restClient.getAllFriends(groupId, onResult = { friendList, _ ->
         friends = friendList?.associate { it.friendId to it.name }
     })
 

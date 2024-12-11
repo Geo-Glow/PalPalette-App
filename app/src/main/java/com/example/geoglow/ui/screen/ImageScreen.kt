@@ -1,6 +1,7 @@
 package com.example.geoglow.ui.screen
 
 import android.os.Build
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.annotation.RequiresApi
@@ -70,6 +71,7 @@ import com.example.geoglow.ui.navigation.Screen
 import com.example.geoglow.utils.storage.DataStoreManager
 import com.example.geoglow.viewmodel.ColorViewModel
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 
 @Composable
 fun ImageView(
@@ -185,7 +187,7 @@ fun ShareFab(onClick: () -> Unit) {
 fun ImageScreen(
     navController: NavController,
     viewModel: ColorViewModel,
-    restClient: RestClient
+    restClient: RestClient,
 ) {
     val lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
     val colorState: ColorViewModel.ColorState by viewModel.colorState.collectAsStateWithLifecycle(
@@ -254,7 +256,9 @@ fun FriendSelectionPopup(
     fromFriendId: String,
     onDismiss: () -> Unit
 ) {
+    val DEV_MODE = true
     val context = LocalContext.current
+    val dataStoreManager = DataStoreManager(context)
     val selectedFriends = remember { mutableStateListOf<Friend>() }
 
     fun Color.toLuminance(): Float {
@@ -272,42 +276,47 @@ fun FriendSelectionPopup(
             LazyColumn {
                 items(friends.size) { index ->
                     val friend = friends[index]
-                    val backGroundColor = Color(
-                        red = friend.color[0],
-                        green = friend.color[1],
-                        blue = friend.color[2]
-                    )
-                    val textColor = getTextColorForBackground(backGroundColor)
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(backGroundColor)
-                            .clickable {
-                                if (selectedFriends.contains(friend)) {
-                                    selectedFriends.remove(friend)
-                                } else {
-                                    selectedFriends.add(friend)
-                                }
-                            }
-                            .padding(8.dp)
-                    ) {
-                        Checkbox(
-                            checked = selectedFriends.contains(friend),
-                            onCheckedChange = {
-                                if (it) {
-                                    selectedFriends.add(friend)
-                                } else {
-                                    selectedFriends.remove(friend)
-                                }
-                            },
-                            colors = CheckboxDefaults.colors(checkmarkColor = textColor)
+                    val ownFriendId = runBlocking {
+                        dataStoreManager.friendID.first()
+                    }
+                    if (friend.friendId != ownFriendId || DEV_MODE) {
+                        val backGroundColor = Color(
+                            red = friend.color[0],
+                            green = friend.color[1],
+                            blue = friend.color[2]
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Column {
-                            Text(friend.name, fontWeight = FontWeight.Medium, color = textColor)
-                            //Text(friend.tileIds.joinToString(", "), color = textColor)
+                        val textColor = getTextColorForBackground(backGroundColor)
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(backGroundColor)
+                                .clickable {
+                                    if (selectedFriends.contains(friend)) {
+                                        selectedFriends.remove(friend)
+                                    } else {
+                                        selectedFriends.add(friend)
+                                    }
+                                }
+                                .padding(8.dp)
+                        ) {
+                            Checkbox(
+                                checked = selectedFriends.contains(friend),
+                                onCheckedChange = {
+                                    if (it) {
+                                        selectedFriends.add(friend)
+                                    } else {
+                                        selectedFriends.remove(friend)
+                                    }
+                                },
+                                colors = CheckboxDefaults.colors(checkmarkColor = textColor)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text(friend.name, fontWeight = FontWeight.Medium, color = textColor)
+                                //Text(friend.tileIds.joinToString(", "), color = textColor)
+                            }
                         }
                     }
                 }
