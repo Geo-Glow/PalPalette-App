@@ -1,6 +1,5 @@
-# GeoGlow-App
-This is the Android App for the GeoGlow System. Most work was done by [K4tara](https://github.com/K4tara).
-This will probably be replaced with a PWA in the near future.
+# PalPalette-App
+This is the Android App for the PalPalette System. Most work was done by [K4tara](https://github.com/K4tara).
 
 The App currently supports the following features:
 - Generating a unique friendId (will be deprecated soon)
