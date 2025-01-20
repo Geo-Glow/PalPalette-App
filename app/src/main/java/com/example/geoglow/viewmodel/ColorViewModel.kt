@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.exifinterface.media.ExifInterface
@@ -30,7 +31,8 @@ class ColorViewModel(application: Application): AndroidViewModel(application) {
     data class ColorState(
         val imageBitmap: ImageBitmap? = null,
         val colorList: List<Array<Int>>? = null,
-        val imageMetadataJson: String = ""
+        val imageMetadataJson: String = "",
+        val errorMessage: String? = null
     )
 
     private val maxExtractedColors = 16
@@ -59,6 +61,14 @@ class ColorViewModel(application: Application): AndroidViewModel(application) {
         }
     }
 
+    fun clearErrorMessage() {
+        _colorState.update { currentState ->
+            currentState.copy(
+                errorMessage = null
+            )
+        }
+    }
+
     // Rotate bitmap based on exif orientation
     private fun rotateBitmap(bitmap: Bitmap, orientation: Int): Bitmap {
         val matrix = android.graphics.Matrix()
@@ -72,21 +82,38 @@ class ColorViewModel(application: Application): AndroidViewModel(application) {
 
     fun setColorState(uri: Uri, imageMetadata: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            getApplication<Application>().applicationContext.contentResolver.openInputStream(uri)?.use { stream ->
-                val bitmap: Bitmap = BitmapFactory.decodeStream(stream)
-                val orientation = getExifOrientation(uri)
-                val correctlyOrientedBitmap = rotateBitmap(bitmap, orientation)
+            try {
+                getApplication<Application>().applicationContext.contentResolver.openInputStream(uri)?.use { stream ->
+                    val bitmap: Bitmap = BitmapFactory.decodeStream(stream)
+                    val orientation = getExifOrientation(uri)
+                    val correctlyOrientedBitmap = rotateBitmap(bitmap, orientation)
 
-                val palette = Palette.Builder(correctlyOrientedBitmap)
-                    .maximumColorCount(maxExtractedColors)
-                    .generate()
+                    val palette = Palette.Builder(correctlyOrientedBitmap)
+                        .maximumColorCount(maxExtractedColors)
+                        .generate()
+                    if (palette.swatches.isNotEmpty()) {
+                        _colorState.update { currentState ->
+                            currentState.copy(
+                                imageBitmap = correctlyOrientedBitmap.asImageBitmap(),
+                                colorList = paletteToRgbList(palette),
+                                imageMetadataJson = imageMetadata
+                            )
+                        }
+                    } else {
+                        _colorState.update { currentState ->
+                            currentState.copy(
+                                errorMessage = "No colors found in the image."
+                            )
+                        }
+                    }
+                }
+            } catch (e: Exception) {
                 _colorState.update { currentState ->
                     currentState.copy(
-                        imageBitmap = correctlyOrientedBitmap.asImageBitmap(),
-                        colorList = paletteToRgbList(palette),
-                        imageMetadataJson = imageMetadata
+                        errorMessage = "Failed to process the image."
                     )
                 }
+                e.printStackTrace()
             }
         }
     }

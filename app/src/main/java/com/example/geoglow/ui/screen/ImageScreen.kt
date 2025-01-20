@@ -197,6 +197,14 @@ fun ImageScreen(
     val dataStoreManager = remember { DataStoreManager(context) }
     var fromFriendId by remember { mutableStateOf("") }
 
+    LaunchedEffect(colorState.errorMessage) {
+        colorState.errorMessage?.let { message ->
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+            navController.navigateUp()
+            viewModel.clearErrorMessage()
+        }
+    }
+
     LaunchedEffect(Unit) {
         fromFriendId = dataStoreManager.friendID.first()
     }
