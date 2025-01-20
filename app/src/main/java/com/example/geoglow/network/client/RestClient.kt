@@ -7,6 +7,7 @@ import com.example.geoglow.data.model.ColorMultiPost
 import com.example.geoglow.data.model.ColorRequest
 import com.example.geoglow.data.model.Friend
 import com.example.geoglow.data.model.Message
+import com.example.geoglow.data.model.Timeout
 import com.google.gson.GsonBuilder
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -71,6 +72,31 @@ class RestClient(private val context: Context) {
 
             override fun onFailure(call: Call<Friend>, t: Throwable) {
                 onResult(null, t)
+            }
+        })
+    }
+
+    fun sendTimeoutTimes(friendId: String, start: String, end: String, onResult: (SendColorsResult, Throwable?) -> Unit) {
+        apiService.sendTimeoutTimes(friendId, Timeout(start, end)).enqueue(object : Callback<Void> {
+            override fun onResponse(call: Call<Void>, response: Response<Void>) {
+                when (response.code()) {
+                    200 -> onResult(
+                        SendColorsResult.SUCCESS,
+                        Throwable("Success.")
+                    )
+                    500 -> onResult(
+                        SendColorsResult.SERVER_ERROR,
+                        Throwable("Internal server error")
+                    )
+                    else -> onResult(
+                        SendColorsResult.UNKNOWN_ERROR,
+                        Throwable("Unknown error: ${response.code()}")
+                    )
+                }
+            }
+
+            override fun onFailure(call: Call<Void>, t: Throwable) {
+                onResult(SendColorsResult.UNKNOWN_ERROR, t)
             }
         })
     }

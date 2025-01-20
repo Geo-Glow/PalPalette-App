@@ -6,3 +6,8 @@ data class ColorMultiPost(
     val colors: List<String>,
     val imageData: String,
 )
+
+data class Timeout(
+    val start: String,
+    val end: String
+)

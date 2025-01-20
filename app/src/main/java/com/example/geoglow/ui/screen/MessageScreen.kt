@@ -44,18 +44,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.geoglow.R
 import com.example.geoglow.SendColorsResult
 import com.example.geoglow.data.model.Message
 import com.example.geoglow.network.client.RestClient
 import com.example.geoglow.utils.general.formatTimestamp
-import com.example.geoglow.utils.storage.DataStoreManager
 import com.example.geoglow.utils.storage.SharedPreferencesHelper
 import com.example.geoglow.viewmodel.MessageViewModel
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.stateIn
 import java.util.Date
 
 @OptIn(ExperimentalMaterial3Api::class)

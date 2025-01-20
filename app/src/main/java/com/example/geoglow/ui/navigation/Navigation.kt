@@ -19,6 +19,7 @@ import com.example.geoglow.network.client.RestClient
 import com.example.geoglow.ui.screen.MainScreen
 import com.example.geoglow.ui.screen.ImageScreen
 import com.example.geoglow.ui.screen.MessageScreen
+import com.example.geoglow.ui.screen.SettingsScreen
 import com.example.geoglow.utils.storage.DataStoreManager
 import com.example.geoglow.viewmodel.MessageViewModel
 
@@ -47,6 +48,14 @@ fun Navigation(viewModel: ColorViewModel, restClient: RestClient) {
 
         composable(route = Screen.ImageScreen.route) {
             ImageScreen(navController, viewModel, restClient)
+        }
+
+        composable(
+            route = "${Screen.SettingsScreen.route}/{friendID}",
+            arguments = listOf(navArgument("friendID") { type = NavType.StringType })
+        ) { navBackStackEntry ->
+            val friendID = navBackStackEntry.arguments?.getString("friendID").orEmpty()
+            SettingsScreen(navController, friendID, restClient)
         }
 
         composable(
