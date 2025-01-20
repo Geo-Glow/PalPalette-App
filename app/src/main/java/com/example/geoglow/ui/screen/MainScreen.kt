@@ -260,6 +260,28 @@ fun MainScreen(navController: NavController, viewModel: ColorViewModel) {
                         fontWeight = FontWeight.Medium
                     )
                 }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                ExtendedFloatingActionButton(
+                    onClick = {
+                        friendID.takeIf { it.isNotEmpty() }?.let { id ->
+                            navController.navigate("${Screen.SettingsScreen.route}/$id")
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(0.7f)
+                ) {
+                    Icon(
+                        imageVector = ImageVector.vectorResource(id = R.drawable.baseline_settings_24),
+                        contentDescription = "settings"
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = stringResource(R.string.settings),
+                        fontSize = MaterialTheme.typography.titleMedium.fontSize,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
         }
     }

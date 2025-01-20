@@ -4,6 +4,7 @@ import com.example.geoglow.data.model.ColorMultiPost
 import com.example.geoglow.data.model.ColorRequest
 import com.example.geoglow.data.model.Friend
 import com.example.geoglow.data.model.Message
+import com.example.geoglow.data.model.Timeout
 import retrofit2.Call
 import retrofit2.http.*
 
@@ -18,6 +19,12 @@ interface ApiService {
     @POST("friends/colors")
     fun sendColors(
         @Body colorRequest: ColorMultiPost
+    ): Call<Void>
+
+    @POST("friends/{friendId}/timeout")
+    fun sendTimeoutTimes(
+        @Path("friendId") friendId: String,
+        @Body timeout: Timeout
     ): Call<Void>
 
     @POST("friends/{friendId}/colors")

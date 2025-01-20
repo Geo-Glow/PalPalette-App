@@ -20,4 +20,5 @@
     <string name="last_week">Nur die letzte Woche</string>
     <string name="unseen_only">Nur die nicht gesehenen</string>
     <string name="invalid_id">Ungültige Freundes ID</string>
+    <string name="settings">Einstellungen</string>
 </resources>
