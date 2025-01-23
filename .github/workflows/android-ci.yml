@@ -1,0 +1,69 @@
+name: Android CI Pipeline
+
+on:
+  push:
+    branches:
+      - main # Trigger on pushes to the main branch
+  pull_request:
+    branches:
+      - main # Optional: Trigger on PRs to the main branch
+
+jobs:
+  build:
+    name: Build, Test, and Analyze
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the repository
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      # Set up JDK for Android
+      - name: Setup JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu' # Recommended JDK distribution
+          java-version: 17     # Match the version required by your project
+
+      # Set up Android SDK
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v2
+        with:
+          api-level: 34        # Set to your target API level
+          build-tools: 33.0.2  # Match the build tools version in your project
+
+      # Decode and save the keystore
+      - name: Decode Keystore
+        run: |
+          echo "${{ secrets.STORE_FILE_BASE64 }}" | base64 -d > keystore.jks
+          
+      # Set environment variables
+      - name: Set Environment Variables
+        run: |
+          echo "STORE_PASSWORD=${{ secrets.STORE_PASSWORD }}" >> $GITHUB_ENV
+          echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
+          echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
+          echo "STORE_FILE=keystore.jks" >> $GITHUB_ENV
+
+      # Run Code Cleanup (e.g., detekt, ktlint, spotless)
+      - name: Run Code Cleanup
+        run: ./gradlew spotlessApply
+
+      # Run Security Checks (e.g., OWASP dependency check, custom scripts)
+      - name: Run Security Checks
+        run: ./gradlew dependencyCheckAnalyze
+
+      # Build and Test
+      - name: Build and Test
+        run: ./gradlew build --stacktrace
+
+      # Assemble Release APK
+      - name: Assemble APK
+        run: ./gradlew assembleRelease
+
+      # Upload APK as an Artifact
+      - name: Upload APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: release-apk
+          path: app/build/outputs/apk/release/*.apk
