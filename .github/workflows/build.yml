@@ -33,7 +33,7 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Decode Keystore
-        run: echo "${{ secrets.STORE_FILE_BASE64 }}" | base64 --decode > my-release-key.jks
+        run: echo "${{ secrets.STORE_FILE_BASE64 }}" | base64 --decode > app/my-release-key.jks
 
       - name: Build and Sign APK
         env:
