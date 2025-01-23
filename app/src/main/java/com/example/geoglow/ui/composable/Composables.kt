@@ -13,7 +13,19 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.draganddrop.dragAndDropSource
 import androidx.compose.foundation.draganddrop.dragAndDropTarget
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -38,13 +50,13 @@ import androidx.compose.ui.draganddrop.DragAndDropTarget
 import androidx.compose.ui.draganddrop.DragAndDropTransferData
 import androidx.compose.ui.draganddrop.mimeTypes
 import androidx.compose.ui.draganddrop.toAndroidDragEvent
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.geoglow.R
 import com.example.geoglow.viewmodel.ColorViewModel
@@ -115,7 +127,6 @@ fun DraggablePalette(viewModel: ColorViewModel, modifier: Modifier = Modifier) {
                                     if (draggedIndex != null && draggedIndex != globalIndex) {
                                         colorList.swap(draggedIndex, globalIndex)
                                         viewModel.updateColorList(colorList.toList())
-                                        //swapColors(colorList, draggedIndex, globalIndex)
                                     }
 
                                     isDragging.value = false
@@ -129,10 +140,10 @@ fun DraggablePalette(viewModel: ColorViewModel, modifier: Modifier = Modifier) {
                     ColorBox(
                         color,
                         "",
-                        index = colorList.indexOf(colorArray),
+                        index = colorList.indexOf(colorArray) + 1, // We need to add 1 since Arrays start at 0
                         modifier = Modifier
                             .weight(1f)
-                            .padding(2.dp) // Reduced padding for each color box
+                            .padding(2.dp)
                             .height(50.dp)
                             .then(dragSourceModifier)
                             .then(dropTargetModifier)
@@ -155,38 +166,53 @@ private fun MutableList<Array<Int>>.swap(index1: Int, index2: Int) {
 
 @Composable
 fun RowScope.ColorBox(color: Color, text: String, index: Int, modifier: Modifier = Modifier) {
-    Box(
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .weight(1f)
             .height(50.dp)
             .background(color, shape = RoundedCornerShape(20))
-            .padding(10.dp), // Internal padding for text content
-        contentAlignment = Alignment.Center
+            .padding(horizontal = 10.dp, vertical = 5.dp)
     ) {
-        // Ensure the color of the icon is contrasting to the background
-        val iconColor = if (color.luminance() > 0.5) Color.Black else Color.White
-
-        // Stack items within the box for an overlay effect
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopEnd) {
-            // Draggable icon positioned at the top right
-            Icon(
-                imageVector = Icons.Default.Menu, // Replace with your drag handle icon, // Example vector, ensure you have this resource
-                contentDescription = "Drag handle",
-                tint = iconColor, // Match the text color
-                modifier = Modifier.size(24.dp) // Dimensions of the icon
+        Box(
+            modifier = Modifier
+                .size(30.dp)
+                .clip(CircleShape)
+                .background(if (color.luminance() > 0.5) Color.DarkGray else Color.LightGray),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = index.toString(),
+                color = if (color.luminance() > 0.5) Color.White else Color.Black,
+                fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                fontWeight = FontWeight.Bold
             )
         }
 
-        // Main text centered
-        Text(
-            text = index.toString(),
-            color = iconColor,
-            fontSize = MaterialTheme.typography.bodyLarge.fontSize,
-            fontWeight = FontWeight.Normal,
-            modifier = Modifier.padding(10.dp)
-        )
+        Spacer(modifier = Modifier.width(10.dp))
+
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .background(color, shape= RoundedCornerShape(20))
+                .padding(10.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            val iconColor = if (color.luminance() > 0.5) Color.Black else Color.White
+
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopEnd) {
+                Icon(
+                    imageVector = Icons.Default.Menu,
+                    contentDescription = "Drag handle",
+                    tint = iconColor,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
     }
 }
+
 
 @Composable
 fun LoadingAnimation() {
