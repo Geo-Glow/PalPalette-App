@@ -1,54 +1,52 @@
-# Controls when the workflow will run
+name: Android Build and Release
+
 on:
-  # Triggers the workflow on push or pull request events but only for the "master" branch
   pull_request:
     branches: ["master"]
   push:
     branches: ["master"]
-  
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build and release"
   build_and_release:
-    # The type of runner that the job will run on
     runs-on: ubuntu-latest
     permissions:
       contents: write
       id-token: write
-    
-    # Steps represent a sequence of tasks that will be executed as part of the job
+
     steps:
-      # Checks out your repository under $GITHUB_WORKSPACE, so your job can access it
       - name: Checkout
         uses: actions/checkout@v4
-    
+
       - name: Setup Java JDK 17
         uses: actions/setup-java@v2
         with:
-          distribution: 'temurin' # 'adopt' is now deprecated in favor of 'temurin'
+          distribution: 'temurin'
           java-version: '17'
-    
+
       - name: Change wrapper permissions
         run: chmod +x ./gradlew
-    
-      # Runs a single command using the runners shell
+
       - name: Build with Gradle
         run: ./gradlew assembleRelease
-    
-      - name: Upload Build Artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: AndroidRelease.apk
-          path: app/build/outputs/apk/release/app-release.apk
-    
-      # Create a new GitHub release
+
+      # Verifying if the APK is created
+      - name: List APK Outputs
+        run: ls -R app/build/outputs/apk/release/
+
+      # Create and push a new tag
+      - name: Create Tag
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git tag v0.0.${{ github.run_number }}
+          git push origin v0.0.${{ github.run_number }}
+
       - name: Create GitHub Release
         id: create_release
         uses: softprops/action-gh-release@v1
         with:
           files: app/build/outputs/apk/release/app-release.apk
+          tag_name: v0.0.${{ github.run_number }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
