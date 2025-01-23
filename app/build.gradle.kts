@@ -30,10 +30,10 @@ android {
 
     signingConfigs {
         create("release") {
-            keyAlias = localProperties.getProperty("MY_KEY_ALIAS") ?: ""
-            keyPassword = localProperties.getProperty("MY_KEY_PASSWORD") ?: ""
-            storeFile = file(localProperties.getProperty("MY_STORE_FILE") ?: "")
-            storePassword = localProperties.getProperty("MY_STORE_PASSWORD") ?: ""
+            keyAlias = System.getenv("KEY_ALIAS") ?: localProperties.getProperty("MY_KEY_ALIAS") ?: ""
+            keyPassword = System.getenv("KEY_PASSWORD") ?: localProperties.getProperty("MY_KEY_PASSWORD") ?: ""
+            storeFile = file(System.getenv("STORE_FILE_PATH") ?: localProperties.getProperty("MY_STORE_FILE") ?: "")
+            storePassword = System.getenv("STORE_PASSWORD") ?: localProperties.getProperty("MY_STORE_PASSWORD") ?: ""
         }
     }
 
@@ -65,9 +65,9 @@ android {
         kotlinCompilerExtensionVersion = "1.5.2"
     }
 
-    packagingOptions {
+    packaging {
         resources {
-            excludes += "/META-INF/*" //{AL2.0,LGPL2.1}
+            excludes += "/META-INF/*"
         }
     }
 }
