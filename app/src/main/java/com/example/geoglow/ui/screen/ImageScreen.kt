@@ -209,7 +209,9 @@ fun ImageScreen(
         fromFriendId = dataStoreManager.friendID.first()
     }
 
-    val showFriendSelectionPopup by viewModel.showFriendSelectionPopup.collectAsStateWithLifecycle(lifecycleOwner)
+    val showFriendSelectionPopup by viewModel.showFriendSelectionPopup.collectAsStateWithLifecycle(
+        lifecycleOwner
+    )
     val friendList by viewModel.friendList.collectAsStateWithLifecycle(lifecycleOwner)
 
     BackHandler {
@@ -230,7 +232,11 @@ fun ImageScreen(
                 if (friendList.isNotEmpty()) {
                     viewModel.setShowFriendSelectionPopup(true)
                 } else {
-                    Toast.makeText(context, context.getString(R.string.toast_friends_not_connected), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.toast_friends_not_connected),
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
             }
         },
@@ -274,12 +280,17 @@ fun FriendSelectionPopup(
     }
 
     @Composable
-    fun getTextColorForBackground(backgroundColor: Color) : Color {
+    fun getTextColorForBackground(backgroundColor: Color): Color {
         return if (backgroundColor.toLuminance() > 0.5f) Color.Black else Color.White
     }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(text = stringResource(R.string.friends_select), style = MaterialTheme.typography.headlineSmall) },
+        title = {
+            Text(
+                text = stringResource(R.string.friends_select),
+                style = MaterialTheme.typography.headlineSmall
+            )
+        },
         text = {
             LazyColumn {
                 items(friends.size) { index ->
@@ -332,29 +343,41 @@ fun FriendSelectionPopup(
         },
         confirmButton = {
             Button(enabled = selectedFriends.isNotEmpty(), onClick = {
-                val selectedColors = colorPalette.map { array -> String.format("#%02X%02X%02X", array[0], array[1], array[2]) }
-                restClient.sendColors(fromFriendId, selectedFriends.map { it.friendId }, selectedColors, viewModel.colorState.value.imageMetadataJson) { result, error ->
-                        val message = when (result) {
-                            SendColorsResult.SUCCESS -> "Colors sent successfully"
-                            SendColorsResult.ACCEPTED -> "Friend currently offline, the Message will be processed later"
-                            SendColorsResult.FRIEND_NOT_FOUND -> "Friend not found: $fromFriendId"
-                            SendColorsResult.SERVER_ERROR -> "Server error, please try again"
-                            SendColorsResult.UNKNOWN_ERROR -> "Unknown error, please try again"
-                            SendColorsResult.PARTIAL_SUCCESS -> "Partial success, some friends were not found"
-                            SendColorsResult.BAD_REQUEST -> "Invalid request data"
-                        }
-
-                        if (error != null) {
-                            Toast.makeText(context, error.message, Toast.LENGTH_SHORT).show()
-                        } else {
-                            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-                        }
-
-                        navController.navigate(Screen.MainScreen.route) {
-                            popUpTo(Screen.MainScreen.route) { inclusive = true }
-                        }
-                        viewModel.resetColorState()
+                val selectedColors = colorPalette.map { array ->
+                    String.format(
+                        "#%02X%02X%02X",
+                        array[0],
+                        array[1],
+                        array[2]
+                    )
+                }
+                restClient.sendColors(
+                    fromFriendId,
+                    selectedFriends.map { it.friendId },
+                    selectedColors,
+                    viewModel.colorState.value.imageMetadataJson
+                ) { result, error ->
+                    val message = when (result) {
+                        SendColorsResult.SUCCESS -> "Colors sent successfully"
+                        SendColorsResult.ACCEPTED -> "Friend currently offline, the Message will be processed later"
+                        SendColorsResult.FRIEND_NOT_FOUND -> "Friend not found: $fromFriendId"
+                        SendColorsResult.SERVER_ERROR -> "Server error, please try again"
+                        SendColorsResult.UNKNOWN_ERROR -> "Unknown error, please try again"
+                        SendColorsResult.PARTIAL_SUCCESS -> "Partial success, some friends were not found"
+                        SendColorsResult.BAD_REQUEST -> "Invalid request data"
                     }
+
+                    if (error != null) {
+                        Toast.makeText(context, error.message, Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                    }
+
+                    navController.navigate(Screen.MainScreen.route) {
+                        popUpTo(Screen.MainScreen.route) { inclusive = true }
+                    }
+                    viewModel.resetColorState()
+                }
             }) {
                 Text(text = stringResource(R.string.button_confirm))
             }

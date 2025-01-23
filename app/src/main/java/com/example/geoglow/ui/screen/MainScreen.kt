@@ -293,8 +293,10 @@ fun MainScreen(navController: NavController, viewModel: ColorViewModel) {
                 scope.launch {
                     RestClient(context).getFriendById(id, onResult = { friend, t ->
                         if (friend == null) {
-                            Toast.makeText(context,
-                                context.getString(R.string.invalid_id), Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.invalid_id), Toast.LENGTH_SHORT
+                            ).show()
                         } else {
                             showFriendIDDialog = false
                             runBlocking {

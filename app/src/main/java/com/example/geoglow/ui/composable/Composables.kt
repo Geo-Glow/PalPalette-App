@@ -55,7 +55,13 @@ import java.util.Calendar
 @Composable
 fun DraggablePalette(viewModel: ColorViewModel, modifier: Modifier = Modifier) {
     val colorState by viewModel.colorState.collectAsState()
-    val colorList = remember { mutableStateListOf<Array<Int>>().apply { addAll(colorState.colorList ?: listOf()) } }
+    val colorList = remember {
+        mutableStateListOf<Array<Int>>().apply {
+            addAll(
+                colorState.colorList ?: listOf()
+            )
+        }
+    }
 
     Column(
         modifier = modifier
@@ -84,7 +90,10 @@ fun DraggablePalette(viewModel: ColorViewModel, modifier: Modifier = Modifier) {
 
                                 startTransfer(
                                     DragAndDropTransferData(
-                                        clipData = ClipData.newPlainText("index", globalIndex.toString())
+                                        clipData = ClipData.newPlainText(
+                                            "index",
+                                            globalIndex.toString()
+                                        )
                                     )
                                 )
                             }
@@ -99,7 +108,8 @@ fun DraggablePalette(viewModel: ColorViewModel, modifier: Modifier = Modifier) {
                             object : DragAndDropTarget {
                                 override fun onDrop(event: DragAndDropEvent): Boolean {
                                     val clipDataItem = event.toAndroidDragEvent().clipData
-                                    val draggedIndexText = clipDataItem?.getItemAt(0)?.text?.toString()
+                                    val draggedIndexText =
+                                        clipDataItem?.getItemAt(0)?.text?.toString()
                                     val draggedIndex = draggedIndexText?.toIntOrNull()
 
                                     if (draggedIndex != null && draggedIndex != globalIndex) {
@@ -119,6 +129,7 @@ fun DraggablePalette(viewModel: ColorViewModel, modifier: Modifier = Modifier) {
                     ColorBox(
                         color,
                         "",
+                        index = colorList.indexOf(colorArray),
                         modifier = Modifier
                             .weight(1f)
                             .padding(2.dp) // Reduced padding for each color box
@@ -143,7 +154,7 @@ private fun MutableList<Array<Int>>.swap(index1: Int, index2: Int) {
 }
 
 @Composable
-fun RowScope.ColorBox(color: Color, text: String, modifier: Modifier = Modifier) {
+fun RowScope.ColorBox(color: Color, text: String, index: Int, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .weight(1f)
@@ -168,7 +179,7 @@ fun RowScope.ColorBox(color: Color, text: String, modifier: Modifier = Modifier)
 
         // Main text centered
         Text(
-            text = text,
+            text = index.toString(),
             color = iconColor,
             fontSize = MaterialTheme.typography.bodyLarge.fontSize,
             fontWeight = FontWeight.Normal,
@@ -283,13 +294,13 @@ fun CustomDatePickerDialog(
 
     Column(modifier = Modifier.padding(16.dp)) {
         Text(text = "Select Start Date:")
-        Button(onClick = { showStartDatePicker = true}) {
+        Button(onClick = { showStartDatePicker = true }) {
             Text(text = "Pick Start Date")
         }
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(text = "Select End Date:")
-        Button(onClick = { showEndDatePicker = true}) {
+        Button(onClick = { showEndDatePicker = true }) {
             Text(text = "Pick End Date")
         }
         Spacer(modifier = Modifier.height(16.dp))

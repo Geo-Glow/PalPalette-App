@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 
-class MessageViewModel(application: Application, dataStoreManager: DataStoreManager): AndroidViewModel(application) {
-    val groupId: StateFlow<String> = dataStoreManager.groupId.stateIn(viewModelScope, SharingStarted.Lazily, initialValue = "")
+class MessageViewModel(application: Application, dataStoreManager: DataStoreManager) :
+    AndroidViewModel(application) {
+    val groupId: StateFlow<String> =
+        dataStoreManager.groupId.stateIn(viewModelScope, SharingStarted.Lazily, initialValue = "")
 }

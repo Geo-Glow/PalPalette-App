@@ -26,7 +26,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.IOException
 
-class ColorViewModel(application: Application): AndroidViewModel(application) {
+class ColorViewModel(application: Application) : AndroidViewModel(application) {
 
     data class ColorState(
         val imageBitmap: ImageBitmap? = null,
@@ -45,15 +45,20 @@ class ColorViewModel(application: Application): AndroidViewModel(application) {
     private val _friendList = MutableStateFlow<List<Friend>>(emptyList())
     val friendList = _friendList.asStateFlow()
 
-    private val dataStoreManager: DataStoreManager = DataStoreManager(getApplication<Application>().applicationContext)
+    private val dataStoreManager: DataStoreManager =
+        DataStoreManager(getApplication<Application>().applicationContext)
 
     // Get Image rotation from exif tags
     private fun getExifOrientation(uri: Uri): Int {
         return try {
-            val inputStream = getApplication<Application>().applicationContext.contentResolver.openInputStream(uri)
+            val inputStream =
+                getApplication<Application>().applicationContext.contentResolver.openInputStream(uri)
             inputStream?.use {
                 val exifInterface = ExifInterface(it)
-                exifInterface.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
+                exifInterface.getAttributeInt(
+                    ExifInterface.TAG_ORIENTATION,
+                    ExifInterface.ORIENTATION_NORMAL
+                )
             } ?: ExifInterface.ORIENTATION_NORMAL
         } catch (e: IOException) {
             e.printStackTrace()
@@ -83,30 +88,31 @@ class ColorViewModel(application: Application): AndroidViewModel(application) {
     fun setColorState(uri: Uri, imageMetadata: String) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                getApplication<Application>().applicationContext.contentResolver.openInputStream(uri)?.use { stream ->
-                    val bitmap: Bitmap = BitmapFactory.decodeStream(stream)
-                    val orientation = getExifOrientation(uri)
-                    val correctlyOrientedBitmap = rotateBitmap(bitmap, orientation)
+                getApplication<Application>().applicationContext.contentResolver.openInputStream(uri)
+                    ?.use { stream ->
+                        val bitmap: Bitmap = BitmapFactory.decodeStream(stream)
+                        val orientation = getExifOrientation(uri)
+                        val correctlyOrientedBitmap = rotateBitmap(bitmap, orientation)
 
-                    val palette = Palette.Builder(correctlyOrientedBitmap)
-                        .maximumColorCount(maxExtractedColors)
-                        .generate()
-                    if (palette.swatches.isNotEmpty()) {
-                        _colorState.update { currentState ->
-                            currentState.copy(
-                                imageBitmap = correctlyOrientedBitmap.asImageBitmap(),
-                                colorList = paletteToRgbList(palette),
-                                imageMetadataJson = imageMetadata
-                            )
-                        }
-                    } else {
-                        _colorState.update { currentState ->
-                            currentState.copy(
-                                errorMessage = "No colors found in the image."
-                            )
+                        val palette = Palette.Builder(correctlyOrientedBitmap)
+                            .maximumColorCount(maxExtractedColors)
+                            .generate()
+                        if (palette.swatches.isNotEmpty()) {
+                            _colorState.update { currentState ->
+                                currentState.copy(
+                                    imageBitmap = correctlyOrientedBitmap.asImageBitmap(),
+                                    colorList = paletteToRgbList(palette),
+                                    imageMetadataJson = imageMetadata
+                                )
+                            }
+                        } else {
+                            _colorState.update { currentState ->
+                                currentState.copy(
+                                    errorMessage = "No colors found in the image."
+                                )
+                            }
                         }
                     }
-                }
             } catch (e: Exception) {
                 _colorState.update { currentState ->
                     currentState.copy(

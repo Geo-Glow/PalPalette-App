@@ -116,9 +116,13 @@ fun SettingsScreen(navController: NavController, friendId: String, restClient: R
             Spacer(modifier = Modifier.height(24.dp))
 
             Button(onClick = {
-                restClient.sendTimeoutTimes(friendId, startTime, endTime, onResult = { result, error ->
-                    Log.d("SettingsScreen", "Result: $result, Error: $error")
-                })
+                restClient.sendTimeoutTimes(
+                    friendId,
+                    startTime,
+                    endTime,
+                    onResult = { result, error ->
+                        Log.d("SettingsScreen", "Result: $result, Error: $error")
+                    })
                 navController.navigateUp()
             }) {
                 Text("Save Settings")

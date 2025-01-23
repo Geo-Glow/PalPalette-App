@@ -76,7 +76,12 @@ class RestClient(private val context: Context) {
         })
     }
 
-    fun sendTimeoutTimes(friendId: String, start: String, end: String, onResult: (SendColorsResult, Throwable?) -> Unit) {
+    fun sendTimeoutTimes(
+        friendId: String,
+        start: String,
+        end: String,
+        onResult: (SendColorsResult, Throwable?) -> Unit
+    ) {
         apiService.sendTimeoutTimes(friendId, Timeout(start, end)).enqueue(object : Callback<Void> {
             override fun onResponse(call: Call<Void>, response: Response<Void>) {
                 when (response.code()) {
@@ -84,10 +89,12 @@ class RestClient(private val context: Context) {
                         SendColorsResult.SUCCESS,
                         Throwable("Success.")
                     )
+
                     500 -> onResult(
                         SendColorsResult.SERVER_ERROR,
                         Throwable("Internal server error")
                     )
+
                     else -> onResult(
                         SendColorsResult.UNKNOWN_ERROR,
                         Throwable("Unknown error: ${response.code()}")
@@ -101,35 +108,50 @@ class RestClient(private val context: Context) {
         })
     }
 
-    fun sendColors(toFriendId: String, fromFriendId: String, colors: List<String>, shouldSaveMessage: Boolean, onResult: (SendColorsResult, Throwable?) -> Unit) {
+    fun sendColors(
+        toFriendId: String,
+        fromFriendId: String,
+        colors: List<String>,
+        shouldSaveMessage: Boolean,
+        onResult: (SendColorsResult, Throwable?) -> Unit
+    ) {
         val colorRequest = ColorRequest(fromFriendId, colors)
-        apiService.sendColors(toFriendId, colorRequest, shouldSaveMessage).enqueue(object : Callback<Void> {
-            override fun onResponse(call: Call<Void>, response: Response<Void>) {
-                when (response.code()) {
-                    200 -> onResult(SendColorsResult.SUCCESS, null)
-                    202 -> onResult(SendColorsResult.ACCEPTED, null)
-                    404 -> onResult(
-                        SendColorsResult.FRIEND_NOT_FOUND,
-                        Throwable("Friend not found")
-                    )
-                    500 -> onResult(
-                        SendColorsResult.SERVER_ERROR,
-                        Throwable("Internal server error")
-                    )
-                    else -> onResult(
-                        SendColorsResult.UNKNOWN_ERROR,
-                        Throwable("Unknown error: ${response.code()}")
-                    )
-                }
-            }
+        apiService.sendColors(toFriendId, colorRequest, shouldSaveMessage)
+            .enqueue(object : Callback<Void> {
+                override fun onResponse(call: Call<Void>, response: Response<Void>) {
+                    when (response.code()) {
+                        200 -> onResult(SendColorsResult.SUCCESS, null)
+                        202 -> onResult(SendColorsResult.ACCEPTED, null)
+                        404 -> onResult(
+                            SendColorsResult.FRIEND_NOT_FOUND,
+                            Throwable("Friend not found")
+                        )
 
-            override fun onFailure(call: Call<Void>, t: Throwable) {
-                onResult(SendColorsResult.UNKNOWN_ERROR, t)
-            }
-        })
+                        500 -> onResult(
+                            SendColorsResult.SERVER_ERROR,
+                            Throwable("Internal server error")
+                        )
+
+                        else -> onResult(
+                            SendColorsResult.UNKNOWN_ERROR,
+                            Throwable("Unknown error: ${response.code()}")
+                        )
+                    }
+                }
+
+                override fun onFailure(call: Call<Void>, t: Throwable) {
+                    onResult(SendColorsResult.UNKNOWN_ERROR, t)
+                }
+            })
     }
 
-    fun sendColors(fromFriendId: String, toFriendIds: List<String>, colors: List<String>, imageData: String, onResult: (SendColorsResult, Throwable?) -> Unit) {
+    fun sendColors(
+        fromFriendId: String,
+        toFriendIds: List<String>,
+        colors: List<String>,
+        imageData: String,
+        onResult: (SendColorsResult, Throwable?) -> Unit
+    ) {
         val colorRequest = ColorMultiPost(fromFriendId, toFriendIds, colors, imageData)
         apiService.sendColors(colorRequest).enqueue(object : Callback<Void> {
             override fun onResponse(call: Call<Void>, response: Response<Void>) {
@@ -140,14 +162,17 @@ class RestClient(private val context: Context) {
                         SendColorsResult.BAD_REQUEST,
                         Throwable("Invalid request data")
                     )
+
                     404 -> onResult(
                         SendColorsResult.FRIEND_NOT_FOUND,
                         Throwable("One or more friends not found")
                     )
+
                     500 -> onResult(
                         SendColorsResult.SERVER_ERROR,
                         Throwable("Internal server error")
                     )
+
                     else -> onResult(
                         SendColorsResult.UNKNOWN_ERROR,
                         Throwable("Unknown error: ${response.code()}")
@@ -161,35 +186,53 @@ class RestClient(private val context: Context) {
         })
     }
 
-    fun getMessages(toFriendId: String?, fromFriendId: String?, onResult: (List<Message>?, Throwable?) -> Unit) {
-        apiService.getMessages(toFriendId, fromFriendId, null, null).enqueue(object: Callback<List<Message>> {
-            override fun onResponse(call: Call<List<Message>>, response: Response<List<Message>>) {
-                if (response.isSuccessful) {
-                    onResult(response.body(), null)
-                } else {
-                    onResult(null, Throwable(response.errorBody()?.string()))
+    fun getMessages(
+        toFriendId: String?,
+        fromFriendId: String?,
+        onResult: (List<Message>?, Throwable?) -> Unit
+    ) {
+        apiService.getMessages(toFriendId, fromFriendId, null, null)
+            .enqueue(object : Callback<List<Message>> {
+                override fun onResponse(
+                    call: Call<List<Message>>,
+                    response: Response<List<Message>>
+                ) {
+                    if (response.isSuccessful) {
+                        onResult(response.body(), null)
+                    } else {
+                        onResult(null, Throwable(response.errorBody()?.string()))
+                    }
                 }
-            }
 
-            override fun onFailure(call: Call<List<Message>>, t: Throwable) {
-                onResult(null, t)
-            }
-        })
+                override fun onFailure(call: Call<List<Message>>, t: Throwable) {
+                    onResult(null, t)
+                }
+            })
     }
 
-    fun getMessagesWithTimeFrame(toFriendId: String?, fromFriendId: String?, startTime: Long?, endTime: Long?, onResult: (List<Message>?, Throwable?) -> Unit) {
-        apiService.getMessages(toFriendId, fromFriendId, startTime, endTime).enqueue(object: Callback<List<Message>> {
-            override fun onResponse(call: Call<List<Message>>, response: Response<List<Message>>) {
-                if (response.isSuccessful) {
-                    onResult(response.body(), null)
-                } else {
-                    onResult(null, Throwable(response.errorBody()?.string()))
+    fun getMessagesWithTimeFrame(
+        toFriendId: String?,
+        fromFriendId: String?,
+        startTime: Long?,
+        endTime: Long?,
+        onResult: (List<Message>?, Throwable?) -> Unit
+    ) {
+        apiService.getMessages(toFriendId, fromFriendId, startTime, endTime)
+            .enqueue(object : Callback<List<Message>> {
+                override fun onResponse(
+                    call: Call<List<Message>>,
+                    response: Response<List<Message>>
+                ) {
+                    if (response.isSuccessful) {
+                        onResult(response.body(), null)
+                    } else {
+                        onResult(null, Throwable(response.errorBody()?.string()))
+                    }
                 }
-            }
 
-            override fun onFailure(call: Call<List<Message>>, t: Throwable) {
-                onResult(null, t)
-            }
-        })
+                override fun onFailure(call: Call<List<Message>>, t: Throwable) {
+                    onResult(null, t)
+                }
+            })
     }
 }
