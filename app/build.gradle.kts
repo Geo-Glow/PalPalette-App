@@ -32,7 +32,7 @@ android {
         create("release") {
             keyAlias = System.getenv("KEY_ALIAS") ?: localProperties.getProperty("MY_KEY_ALIAS") ?: ""
             keyPassword = System.getenv("KEY_PASSWORD") ?: localProperties.getProperty("MY_KEY_PASSWORD") ?: ""
-            storeFile = file(System.getenv("STORE_FILE_PATH") ?: localProperties.getProperty("MY_STORE_FILE") ?: "")
+            storeFile = file("my-release-key.jks")
             storePassword = System.getenv("STORE_PASSWORD") ?: localProperties.getProperty("MY_STORE_PASSWORD") ?: ""
         }
     }
