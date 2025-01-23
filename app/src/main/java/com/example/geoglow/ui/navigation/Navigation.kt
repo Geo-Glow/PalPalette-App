@@ -34,7 +34,7 @@ fun Navigation(viewModel: ColorViewModel, restClient: RestClient) {
     }
 
     LaunchedEffect(Unit) {
-        navController.addOnDestinationChangedListener {_, destination, _ ->
+        navController.addOnDestinationChangedListener { _, destination, _ ->
             if (destination.route == Screen.MainScreen.route) {
                 viewModel.refreshFriendList(restClient)
             }

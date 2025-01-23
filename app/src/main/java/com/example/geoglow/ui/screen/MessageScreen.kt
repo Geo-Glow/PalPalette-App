@@ -56,13 +56,17 @@ import java.util.Date
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MessageScreen(navController: NavController, friendId: String, messageViewModel: MessageViewModel) {
+fun MessageScreen(
+    navController: NavController,
+    friendId: String,
+    messageViewModel: MessageViewModel
+) {
     val context = LocalContext.current
     val groupId by messageViewModel.groupId.collectAsState()
     val restClient = remember { RestClient(context) }
     val prefsHelper = remember { SharedPreferencesHelper }
 
-    var messages by remember { mutableStateOf(emptyList<Message>())}
+    var messages by remember { mutableStateOf(emptyList<Message>()) }
     var isLoading by remember { mutableStateOf(true) }
     var last24hours by remember { mutableStateOf(false) }
     var lastWeek by remember { mutableStateOf(false) }
@@ -88,8 +92,10 @@ fun MessageScreen(navController: NavController, friendId: String, messageViewMod
                     fetchedMessages
                 }
             } else {
-                Toast.makeText(context,
-                    context.getString(R.string.error_fetching_messages, error), Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.error_fetching_messages, error), Toast.LENGTH_SHORT
+                ).show()
             }
             isLoading = false
         }
@@ -100,14 +106,17 @@ fun MessageScreen(navController: NavController, friendId: String, messageViewMod
                 val endTime = System.currentTimeMillis()
                 restClient.getMessagesWithTimeFrame(friendId, null, startTime, endTime, callback)
             }
+
             lastWeek -> {
                 val startTime = System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000
                 val endTime = System.currentTimeMillis()
                 restClient.getMessagesWithTimeFrame(friendId, null, startTime, endTime, callback)
             }
+
             customPeriod -> {
                 restClient.getMessagesWithTimeFrame(friendId, null, startDate, endDate, callback)
             }
+
             else -> {
                 restClient.getMessages(friendId, null, callback)
             }
@@ -183,8 +192,11 @@ fun MessageScreen(navController: NavController, friendId: String, messageViewMod
                         shouldSaveMessage = false
                     ) { response, error ->
                         if (response == SendColorsResult.SUCCESS) {
-                            Toast.makeText(context,
-                                context.getString(R.string.colors_sent_successfully), Toast.LENGTH_SHORT)
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.colors_sent_successfully),
+                                Toast.LENGTH_SHORT
+                            )
                                 .show()
                         } else {
                             Toast.makeText(
@@ -250,7 +262,7 @@ fun FilterSwitch(
     onCheckedChange: (Boolean) -> Unit
 ) {
     OutlinedCard(
-        onClick = { onCheckedChange(!checked)},
+        onClick = { onCheckedChange(!checked) },
         shape = RoundedCornerShape(8.dp),
         modifier = Modifier
             .fillMaxWidth()
@@ -281,7 +293,11 @@ fun FilterSwitch(
 }
 
 @Composable
-fun MessageList(friends: Map<String, String>?, messages: List<Message>, onMessageClick: (Message) -> Unit) {
+fun MessageList(
+    friends: Map<String, String>?,
+    messages: List<Message>,
+    onMessageClick: (Message) -> Unit
+) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(vertical = 8.dp, horizontal = 16.dp),

@@ -10,7 +10,7 @@ import androidx.activity.result.contract.ActivityResultContract
 
 private const val IMAGE_MIME_TYPE = "image/*"
 
-class CustomGalleryContract: ActivityResultContract<Void?, Uri?>() {
+class CustomGalleryContract : ActivityResultContract<Void?, Uri?>() {
     override fun createIntent(context: Context, input: Void?): Intent {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             Intent(MediaStore.ACTION_PICK_IMAGES)
