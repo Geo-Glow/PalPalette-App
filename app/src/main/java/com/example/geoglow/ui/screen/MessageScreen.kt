@@ -5,7 +5,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -21,15 +20,20 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -45,6 +49,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.geoglow.R
 import com.example.geoglow.SendColorsResult
@@ -94,19 +99,25 @@ fun MessageScreen(
         )
     }
 
-    var showCustomDatePicker by remember { mutableStateOf(false) }
     var friends by remember { mutableStateOf<Map<String, String>?>(null) }
+    var selectedFriend by remember { mutableStateOf<String?>(null) }
 
-    fun fetchMessages() {
+    fun fetchMessages(selectedFriendId: String? = null) {
         isLoading = true
 
         val callback: (List<Message>?, Throwable?) -> Unit = { fetchedMessages, error ->
             if (fetchedMessages != null) {
+                val filteredMessages = if (selectedFriendId != null) {
+                    fetchedMessages.filter { it.fromFriendId == selectedFriendId }
+                } else {
+                    fetchedMessages
+                }
+
                 val seenMessages = prefsHelper.getSeenMessages(context)
                 messages = if (filterState.unseenOnly) {
-                    fetchedMessages.filter { it.id !in seenMessages }.toList()
+                    filteredMessages.filter { it.id !in seenMessages }.toList()
                 } else {
-                    fetchedMessages.toList()
+                    filteredMessages.toList()
                 }
             } else {
                 Toast.makeText(
@@ -130,7 +141,12 @@ fun MessageScreen(
             }
 
             filterState.lastWeek -> {
-                val startTime = System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000
+                val calendar = Calendar.getInstance().apply {
+                    timeZone = TimeZone.getDefault()
+                    add(Calendar.WEEK_OF_YEAR, -1)
+                }
+
+                val startTime = calendar.timeInMillis
                 val endTime = System.currentTimeMillis()
                 restClient.getMessagesWithTimeFrame(friendId, null, startTime, endTime, callback)
             }
@@ -149,8 +165,8 @@ fun MessageScreen(
         friends = friendList?.associate { it.friendId to it.name }
     })
 
-    LaunchedEffect(friendId, filterState) {
-        fetchMessages()
+    LaunchedEffect(friendId, filterState, selectedFriend) {
+        fetchMessages(selectedFriend)
     }
 
     Scaffold(
@@ -169,46 +185,17 @@ fun MessageScreen(
         }
     ) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues)) {
-            MessageFilters(
-                last24hours = filterState.last24hours,
-                onLast24HoursChange = { isChecked: Boolean ->
-                    filterState = filterState.copy(
-                        last24hours = isChecked,
-                        lastWeek = false,
-                        customPeriod = false
-                    )
+            MessageFilter(
+                friendNames = friends?.values?.toList() ?: listOf(),
+                filterState = filterState,
+                selectedFriend = selectedFriend,
+                onFilterChange = { friendName, start, end ->
+                    selectedFriend = friends?.entries?.firstOrNull { it.value == friendName }?.key
                 },
-                lastWeek = filterState.lastWeek,
-                onLastWeekChange = { isChecked: Boolean ->
-                    filterState = filterState.copy(
-                        lastWeek = isChecked,
-                        last24hours = false,
-                        customPeriod = false
-                    )
-                },
-                customPeriod = filterState.customPeriod,
-                onCustomPeriodChange = { isChecked: Boolean ->
-                    filterState = filterState.copy(
-                        customPeriod = isChecked,
-                        last24hours = false,
-                        lastWeek = false
-                    )
-                    if (isChecked) {
-                        showCustomDatePicker = true
-                    }
-                },
-                unseenOnly = filterState.unseenOnly,
-                onUnseenOnlyChange = { isChecked: Boolean ->
-                    filterState = filterState.copy(unseenOnly = isChecked)
-                    prefsHelper.setUnseenOnlyPreference(context, isChecked)
-                },
-                onCustomPeriodSelected = { start: Long, end: Long ->
-                    filterState = filterState.copy(startDate = start, endDate = end)
-                },
-                initialStartDate = filterState.startDate,
-                initialEndDate = filterState.endDate
+                onQuickFilterChange = { newState ->
+                    filterState = newState
+                }
             )
-
             if (isLoading) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
@@ -240,49 +227,6 @@ fun MessageScreen(
                 })
             }
         }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-fun MessageFilters(
-    last24hours: Boolean,
-    onLast24HoursChange: (Boolean) -> Unit,
-    lastWeek: Boolean,
-    onLastWeekChange: (Boolean) -> Unit,
-    customPeriod: Boolean,
-    onCustomPeriodChange: (Boolean) -> Unit,
-    unseenOnly: Boolean,
-    onUnseenOnlyChange: (Boolean) -> Unit,
-    onCustomPeriodSelected: (Long, Long) -> Unit,
-    initialStartDate: Long,
-    initialEndDate: Long
-) {
-    var showCustomDatePicker by remember { mutableStateOf(false) }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-    ) {
-        FilterSwitch(
-            label = stringResource(R.string.last_24_hours),
-            checked = last24hours,
-            onCheckedChange = onLast24HoursChange
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        FilterSwitch(
-            label = stringResource(R.string.last_week),
-            checked = lastWeek,
-            onCheckedChange = onLastWeekChange
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-        FilterSwitch(
-            label = stringResource(R.string.unseen_only),
-            checked = unseenOnly,
-            onCheckedChange = onUnseenOnlyChange
-        )
     }
 }
 
@@ -391,5 +335,129 @@ fun MessageItemPreview() {
     val fromFriend = "Nick"
     val timestamp = Date()
     MessageItem(fromFriend = fromFriend, timestamp = timestamp) {
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DropdownMenu(
+    selectedItem: String,
+    items: List<String>,
+    onItemSelected: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    var selectedOptionText by remember { mutableStateOf(selectedItem) }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded }
+    ) {
+        TextField(
+            readOnly = true,
+            value = selectedOptionText,
+            onValueChange = { },
+            label = { Text("Select Friend") },
+            trailingIcon = {
+                ExposedDropdownMenuDefaults.TrailingIcon(
+                    expanded = expanded
+                )
+            },
+            modifier = Modifier
+                .menuAnchor(MenuAnchorType.PrimaryNotEditable, true)
+                .fillMaxWidth()
+                .clickable { expanded = !expanded },
+            colors = ExposedDropdownMenuDefaults.textFieldColors()
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            items.forEach { selectionOption ->
+                DropdownMenuItem(
+                    text = {
+                        Text(text = selectionOption)
+                    },
+                    onClick = {
+                        selectedOptionText = selectionOption
+                        expanded = false
+                        onItemSelected(selectionOption)
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun MessageFilter(
+    friendNames: List<String>,
+    filterState: FilterState,
+    selectedFriend: String?,
+    onFilterChange: (String, Long?, Long?) -> Unit,
+    onQuickFilterChange: (FilterState) -> Unit
+) {
+    val friendList = listOf("None") + friendNames
+    var localSelectedFriend by remember { mutableStateOf(selectedFriend ?: "None") }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+    ) {
+        Text(
+            text = "Filter Messages",
+            fontSize = 20.sp,
+            color = MaterialTheme.colorScheme.primary
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+        // Friend selection dropdown menu
+        DropdownMenu(localSelectedFriend, friendList) { friend ->
+            localSelectedFriend = friend
+            onFilterChange(friend, null, null)
+        }
+
+        // Quick Filters
+        Spacer(modifier = Modifier.height(16.dp))
+
+        FilterSwitch(
+            label = stringResource(R.string.last_24_hours),
+            checked = filterState.last24hours,
+            onCheckedChange = { isChecked ->
+                onQuickFilterChange(
+                    filterState.copy(
+                        last24hours = isChecked,
+                        lastWeek = false,
+                        customPeriod = false
+                    )
+                )
+            }
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        FilterSwitch(
+            label = stringResource(R.string.last_week),
+            checked = filterState.lastWeek,
+            onCheckedChange = { isChecked ->
+                onQuickFilterChange(
+                    filterState.copy(
+                        lastWeek = isChecked,
+                        last24hours = false,
+                        customPeriod = false
+                    )
+                )
+            }
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        FilterSwitch(
+            label = stringResource(R.string.unseen_only),
+            checked = filterState.unseenOnly,
+            onCheckedChange = { isChecked ->
+                onQuickFilterChange(filterState.copy(unseenOnly = isChecked))
+            }
+        )
     }
 }
