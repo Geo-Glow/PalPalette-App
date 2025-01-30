@@ -5,7 +5,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,22 +18,27 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -43,7 +47,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.geoglow.R
 import com.example.geoglow.SendColorsResult
@@ -52,7 +58,18 @@ import com.example.geoglow.network.client.RestClient
 import com.example.geoglow.utils.general.formatTimestamp
 import com.example.geoglow.utils.storage.SharedPreferencesHelper
 import com.example.geoglow.viewmodel.MessageViewModel
+import java.util.Calendar
 import java.util.Date
+import java.util.TimeZone
+
+data class FilterState(
+    val last24hours: Boolean,
+    val lastWeek: Boolean,
+    val customPeriod: Boolean,
+    val unseenOnly: Boolean,
+    val startDate: Long,
+    val endDate: Long
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,28 +85,39 @@ fun MessageScreen(
 
     var messages by remember { mutableStateOf(emptyList<Message>()) }
     var isLoading by remember { mutableStateOf(true) }
-    var last24hours by remember { mutableStateOf(false) }
-    var lastWeek by remember { mutableStateOf(false) }
-    var customPeriod by remember { mutableStateOf(false) }
-    var unseenOnly by remember { mutableStateOf(prefsHelper.getUnseenOnlyPreference(context)) }
-    var startDate by remember { mutableLongStateOf(System.currentTimeMillis()) }
-    var endDate by remember { mutableLongStateOf(System.currentTimeMillis()) }
 
-    var showCustomDatePicker by remember { mutableStateOf(false) }
-    var friends: Map<String, String>? = null
-    restClient.getAllFriends(groupId, onResult = { friendList, _ ->
-        friends = friendList?.associate { it.friendId to it.name }
-    })
+    var filterState by remember {
+        mutableStateOf(
+            FilterState(
+                last24hours = false,
+                lastWeek = false,
+                customPeriod = false,
+                unseenOnly = prefsHelper.getUnseenOnlyPreference(context),
+                startDate = System.currentTimeMillis(),
+                endDate = System.currentTimeMillis()
+            )
+        )
+    }
 
-    fun fetchMessages() {
+    var friends by remember { mutableStateOf<Map<String, String>?>(null) }
+    var selectedFriend by remember { mutableStateOf<String?>(null) }
+
+    fun fetchMessages(selectedFriendId: String? = null) {
         isLoading = true
+
         val callback: (List<Message>?, Throwable?) -> Unit = { fetchedMessages, error ->
             if (fetchedMessages != null) {
-                val seenMessages = prefsHelper.getSeenMessages(context)
-                messages = if (unseenOnly) {
-                    fetchedMessages.filter { it.id !in seenMessages }
+                val filteredMessages = if (selectedFriendId != null) {
+                    fetchedMessages.filter { it.fromFriendId == selectedFriendId }
                 } else {
                     fetchedMessages
+                }
+
+                val seenMessages = prefsHelper.getSeenMessages(context)
+                messages = if (filterState.unseenOnly) {
+                    filteredMessages.filter { it.id !in seenMessages }.toList()
+                } else {
+                    filteredMessages.toList()
                 }
             } else {
                 Toast.makeText(
@@ -101,20 +129,30 @@ fun MessageScreen(
         }
 
         when {
-            last24hours -> {
-                val startTime = System.currentTimeMillis() - 24 * 60 * 60 * 1000
+            filterState.last24hours -> {
+                val calendar = Calendar.getInstance().apply {
+                    timeZone = TimeZone.getDefault()
+                    add(Calendar.DAY_OF_YEAR, -1)
+                }
+
+                val startTime = calendar.timeInMillis
                 val endTime = System.currentTimeMillis()
                 restClient.getMessagesWithTimeFrame(friendId, null, startTime, endTime, callback)
             }
 
-            lastWeek -> {
-                val startTime = System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000
+            filterState.lastWeek -> {
+                val calendar = Calendar.getInstance().apply {
+                    timeZone = TimeZone.getDefault()
+                    add(Calendar.WEEK_OF_YEAR, -1)
+                }
+
+                val startTime = calendar.timeInMillis
                 val endTime = System.currentTimeMillis()
                 restClient.getMessagesWithTimeFrame(friendId, null, startTime, endTime, callback)
             }
 
-            customPeriod -> {
-                restClient.getMessagesWithTimeFrame(friendId, null, startDate, endDate, callback)
+            filterState.customPeriod -> {
+                restClient.getMessagesWithTimeFrame(friendId, null, filterState.startDate, filterState.endDate, callback)
             }
 
             else -> {
@@ -123,8 +161,12 @@ fun MessageScreen(
         }
     }
 
-    LaunchedEffect(friendId, last24hours, lastWeek, customPeriod, unseenOnly, startDate, endDate) {
-        fetchMessages()
+    restClient.getAllFriends(groupId, onResult = { friendList, _ ->
+        friends = friendList?.associate { it.friendId to it.name }
+    })
+
+    LaunchedEffect(friendId, filterState, selectedFriend) {
+        fetchMessages(selectedFriend)
     }
 
     Scaffold(
@@ -143,41 +185,17 @@ fun MessageScreen(
         }
     ) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues)) {
-            MessageFilters(
-                last24hours = last24hours,
-                onLast24HoursChange = { it: Boolean ->
-                    last24hours = it
-                    lastWeek = false
-                    customPeriod = false
+            MessageFilter(
+                friendNames = friends?.values?.toList() ?: listOf(),
+                filterState = filterState,
+                selectedFriend = selectedFriend,
+                onFilterChange = { friendName, start, end ->
+                    selectedFriend = friends?.entries?.firstOrNull { it.value == friendName }?.key
                 },
-                lastWeek = lastWeek,
-                onLastWeekChange = { it: Boolean ->
-                    lastWeek = it
-                    last24hours = false
-                    customPeriod = false
-                },
-                customPeriod = customPeriod,
-                onCustomPeriodChange = { it: Boolean ->
-                    customPeriod = it
-                    last24hours = false
-                    lastWeek = false
-                    if (it) {
-                        showCustomDatePicker = true
-                    }
-                },
-                unseenOnly = unseenOnly,
-                onUnseenOnlyChange = { it: Boolean ->
-                    unseenOnly = it
-                    prefsHelper.setUnseenOnlyPreference(context, it)
-                },
-                onCustomPeriodSelected = { start: Long, end: Long ->
-                    startDate = start
-                    endDate = end
-                },
-                initialStartDate = startDate,
-                initialEndDate = endDate
+                onQuickFilterChange = { newState ->
+                    filterState = newState
+                }
             )
-
             if (isLoading) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
@@ -212,49 +230,6 @@ fun MessageScreen(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-fun MessageFilters(
-    last24hours: Boolean,
-    onLast24HoursChange: (Boolean) -> Unit,
-    lastWeek: Boolean,
-    onLastWeekChange: (Boolean) -> Unit,
-    customPeriod: Boolean,
-    onCustomPeriodChange: (Boolean) -> Unit,
-    unseenOnly: Boolean,
-    onUnseenOnlyChange: (Boolean) -> Unit,
-    onCustomPeriodSelected: (Long, Long) -> Unit,
-    initialStartDate: Long,
-    initialEndDate: Long
-) {
-    var showCustomDatePicker by remember { mutableStateOf(false) }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-    ) {
-        FilterSwitch(
-            label = stringResource(R.string.last_24_hours),
-            checked = last24hours,
-            onCheckedChange = onLast24HoursChange
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        FilterSwitch(
-            label = stringResource(R.string.last_week),
-            checked = lastWeek,
-            onCheckedChange = onLastWeekChange
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-        FilterSwitch(
-            label = stringResource(R.string.unseen_only),
-            checked = unseenOnly,
-            onCheckedChange = onUnseenOnlyChange
-        )
-    }
-}
-
 @Composable
 fun FilterSwitch(
     label: String,
@@ -283,10 +258,6 @@ fun FilterSwitch(
             Switch(
                 checked = checked,
                 onCheckedChange = onCheckedChange,
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = MaterialTheme.colorScheme.primary,
-                    uncheckedThumbColor = MaterialTheme.colorScheme.onSurface
-                )
             )
         }
     }
@@ -318,16 +289,171 @@ fun MessageList(
 
 @Composable
 fun MessageItem(fromFriend: String, timestamp: Date, onClick: () -> Unit) {
+
+    val formattedTime = formatTimestamp(timestamp)
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp)
+            .padding(8.dp)
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Text(text = "${stringResource(R.string.message_from)}: $fromFriend")
-            Text(text = "${stringResource(R.string.message_time)}: ${formatTimestamp(timestamp)}")
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = fromFriend,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = formattedTime,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun MessageItemPreview() {
+    val fromFriend = "Nick"
+    val timestamp = Date()
+    MessageItem(fromFriend = fromFriend, timestamp = timestamp) {
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DropdownMenu(
+    selectedItem: String,
+    items: List<String>,
+    onItemSelected: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    var selectedOptionText by remember { mutableStateOf(selectedItem) }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded }
+    ) {
+        TextField(
+            readOnly = true,
+            value = selectedOptionText,
+            onValueChange = { },
+            label = { Text("Select Friend") },
+            trailingIcon = {
+                ExposedDropdownMenuDefaults.TrailingIcon(
+                    expanded = expanded
+                )
+            },
+            modifier = Modifier
+                .menuAnchor(MenuAnchorType.PrimaryNotEditable, true)
+                .fillMaxWidth()
+                .clickable { expanded = !expanded },
+            colors = ExposedDropdownMenuDefaults.textFieldColors()
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            items.forEach { selectionOption ->
+                DropdownMenuItem(
+                    text = {
+                        Text(text = selectionOption)
+                    },
+                    onClick = {
+                        selectedOptionText = selectionOption
+                        expanded = false
+                        onItemSelected(selectionOption)
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun MessageFilter(
+    friendNames: List<String>,
+    filterState: FilterState,
+    selectedFriend: String?,
+    onFilterChange: (String, Long?, Long?) -> Unit,
+    onQuickFilterChange: (FilterState) -> Unit
+) {
+    val friendList = listOf("None") + friendNames
+    var localSelectedFriend by remember { mutableStateOf(selectedFriend ?: "None") }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+    ) {
+        Text(
+            text = "Filter Messages",
+            fontSize = 20.sp,
+            color = MaterialTheme.colorScheme.primary
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+        // Friend selection dropdown menu
+        DropdownMenu(localSelectedFriend, friendList) { friend ->
+            localSelectedFriend = friend
+            onFilterChange(friend, null, null)
+        }
+
+        // Quick Filters
+        Spacer(modifier = Modifier.height(16.dp))
+
+        FilterSwitch(
+            label = stringResource(R.string.last_24_hours),
+            checked = filterState.last24hours,
+            onCheckedChange = { isChecked ->
+                onQuickFilterChange(
+                    filterState.copy(
+                        last24hours = isChecked,
+                        lastWeek = false,
+                        customPeriod = false
+                    )
+                )
+            }
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        FilterSwitch(
+            label = stringResource(R.string.last_week),
+            checked = filterState.lastWeek,
+            onCheckedChange = { isChecked ->
+                onQuickFilterChange(
+                    filterState.copy(
+                        lastWeek = isChecked,
+                        last24hours = false,
+                        customPeriod = false
+                    )
+                )
+            }
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        FilterSwitch(
+            label = stringResource(R.string.unseen_only),
+            checked = filterState.unseenOnly,
+            onCheckedChange = { isChecked ->
+                onQuickFilterChange(filterState.copy(unseenOnly = isChecked))
+            }
+        )
     }
 }
