@@ -53,6 +53,7 @@ fun paletteToRgbList(palette: Palette): List<Array<Int>> {
 }
 
 fun formatTimestamp(timestamp: Date): String {
-    val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-    return sdf.format(timestamp)
+    val formatter = SimpleDateFormat("dd MMM yyyy • hh:mm a", Locale.getDefault())
+    formatter.timeZone = TimeZone.getDefault()
+    return formatter.format(timestamp)
 }
