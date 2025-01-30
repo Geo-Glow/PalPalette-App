@@ -1,8 +1,6 @@
 package com.example.geoglow.ui.screen
 
 import android.widget.Toast
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -38,14 +35,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -59,7 +53,18 @@ import com.example.geoglow.network.client.RestClient
 import com.example.geoglow.utils.general.formatTimestamp
 import com.example.geoglow.utils.storage.SharedPreferencesHelper
 import com.example.geoglow.viewmodel.MessageViewModel
+import java.util.Calendar
 import java.util.Date
+import java.util.TimeZone
+
+data class FilterState(
+    val last24hours: Boolean,
+    val lastWeek: Boolean,
+    val customPeriod: Boolean,
+    val unseenOnly: Boolean,
+    val startDate: Long,
+    val endDate: Long
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,28 +80,33 @@ fun MessageScreen(
 
     var messages by remember { mutableStateOf(emptyList<Message>()) }
     var isLoading by remember { mutableStateOf(true) }
-    var last24hours by remember { mutableStateOf(false) }
-    var lastWeek by remember { mutableStateOf(false) }
-    var customPeriod by remember { mutableStateOf(false) }
-    var unseenOnly by remember { mutableStateOf(prefsHelper.getUnseenOnlyPreference(context)) }
-    var startDate by remember { mutableLongStateOf(System.currentTimeMillis()) }
-    var endDate by remember { mutableLongStateOf(System.currentTimeMillis()) }
+
+    var filterState by remember {
+        mutableStateOf(
+            FilterState(
+                last24hours = false,
+                lastWeek = false,
+                customPeriod = false,
+                unseenOnly = prefsHelper.getUnseenOnlyPreference(context),
+                startDate = System.currentTimeMillis(),
+                endDate = System.currentTimeMillis()
+            )
+        )
+    }
 
     var showCustomDatePicker by remember { mutableStateOf(false) }
-    var friends: Map<String, String>? = null
-    restClient.getAllFriends(groupId, onResult = { friendList, _ ->
-        friends = friendList?.associate { it.friendId to it.name }
-    })
+    var friends by remember { mutableStateOf<Map<String, String>?>(null) }
 
     fun fetchMessages() {
         isLoading = true
+
         val callback: (List<Message>?, Throwable?) -> Unit = { fetchedMessages, error ->
             if (fetchedMessages != null) {
                 val seenMessages = prefsHelper.getSeenMessages(context)
-                messages = if (unseenOnly) {
-                    fetchedMessages.filter { it.id !in seenMessages }
+                messages = if (filterState.unseenOnly) {
+                    fetchedMessages.filter { it.id !in seenMessages }.toList()
                 } else {
-                    fetchedMessages
+                    fetchedMessages.toList()
                 }
             } else {
                 Toast.makeText(
@@ -108,20 +118,25 @@ fun MessageScreen(
         }
 
         when {
-            last24hours -> {
-                val startTime = System.currentTimeMillis() - 24 * 60 * 60 * 1000
+            filterState.last24hours -> {
+                val calendar = Calendar.getInstance().apply {
+                    timeZone = TimeZone.getDefault()
+                    add(Calendar.DAY_OF_YEAR, -1)
+                }
+
+                val startTime = calendar.timeInMillis
                 val endTime = System.currentTimeMillis()
                 restClient.getMessagesWithTimeFrame(friendId, null, startTime, endTime, callback)
             }
 
-            lastWeek -> {
+            filterState.lastWeek -> {
                 val startTime = System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000
                 val endTime = System.currentTimeMillis()
                 restClient.getMessagesWithTimeFrame(friendId, null, startTime, endTime, callback)
             }
 
-            customPeriod -> {
-                restClient.getMessagesWithTimeFrame(friendId, null, startDate, endDate, callback)
+            filterState.customPeriod -> {
+                restClient.getMessagesWithTimeFrame(friendId, null, filterState.startDate, filterState.endDate, callback)
             }
 
             else -> {
@@ -130,7 +145,11 @@ fun MessageScreen(
         }
     }
 
-    LaunchedEffect(friendId, last24hours, lastWeek, customPeriod, unseenOnly, startDate, endDate) {
+    restClient.getAllFriends(groupId, onResult = { friendList, _ ->
+        friends = friendList?.associate { it.friendId to it.name }
+    })
+
+    LaunchedEffect(friendId, filterState) {
         fetchMessages()
     }
 
@@ -151,38 +170,43 @@ fun MessageScreen(
     ) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues)) {
             MessageFilters(
-                last24hours = last24hours,
-                onLast24HoursChange = { it: Boolean ->
-                    last24hours = it
-                    lastWeek = false
-                    customPeriod = false
+                last24hours = filterState.last24hours,
+                onLast24HoursChange = { isChecked: Boolean ->
+                    filterState = filterState.copy(
+                        last24hours = isChecked,
+                        lastWeek = false,
+                        customPeriod = false
+                    )
                 },
-                lastWeek = lastWeek,
-                onLastWeekChange = { it: Boolean ->
-                    lastWeek = it
-                    last24hours = false
-                    customPeriod = false
+                lastWeek = filterState.lastWeek,
+                onLastWeekChange = { isChecked: Boolean ->
+                    filterState = filterState.copy(
+                        lastWeek = isChecked,
+                        last24hours = false,
+                        customPeriod = false
+                    )
                 },
-                customPeriod = customPeriod,
-                onCustomPeriodChange = { it: Boolean ->
-                    customPeriod = it
-                    last24hours = false
-                    lastWeek = false
-                    if (it) {
+                customPeriod = filterState.customPeriod,
+                onCustomPeriodChange = { isChecked: Boolean ->
+                    filterState = filterState.copy(
+                        customPeriod = isChecked,
+                        last24hours = false,
+                        lastWeek = false
+                    )
+                    if (isChecked) {
                         showCustomDatePicker = true
                     }
                 },
-                unseenOnly = unseenOnly,
-                onUnseenOnlyChange = { it: Boolean ->
-                    unseenOnly = it
-                    prefsHelper.setUnseenOnlyPreference(context, it)
+                unseenOnly = filterState.unseenOnly,
+                onUnseenOnlyChange = { isChecked: Boolean ->
+                    filterState = filterState.copy(unseenOnly = isChecked)
+                    prefsHelper.setUnseenOnlyPreference(context, isChecked)
                 },
                 onCustomPeriodSelected = { start: Long, end: Long ->
-                    startDate = start
-                    endDate = end
+                    filterState = filterState.copy(startDate = start, endDate = end)
                 },
-                initialStartDate = startDate,
-                initialEndDate = endDate
+                initialStartDate = filterState.startDate,
+                initialEndDate = filterState.endDate
             )
 
             if (isLoading) {
