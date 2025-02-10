@@ -91,6 +91,7 @@ dependencies {
 
     // For Image handling
     implementation("androidx.exifinterface:exifinterface:1.3.7")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     // Palette
     implementation("androidx.palette:palette-ktx:1.0.0")

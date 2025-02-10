@@ -1,21 +1,25 @@
 package com.example.geoglow.network.client
 
 import android.content.Context
-import com.example.geoglow.network.api.ApiService
 import com.example.geoglow.SendColorsResult
 import com.example.geoglow.data.model.ColorMultiPost
 import com.example.geoglow.data.model.ColorRequest
+import com.example.geoglow.data.model.ColorResponse
 import com.example.geoglow.data.model.Friend
 import com.example.geoglow.data.model.Message
 import com.example.geoglow.data.model.Timeout
+import com.example.geoglow.network.api.ApiService
 import com.google.gson.GsonBuilder
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
+import okhttp3.RequestBody.Companion.asRequestBody
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.io.File
 
 class RestClient(private val context: Context) {
 
@@ -27,12 +31,12 @@ class RestClient(private val context: Context) {
     private val apiService: ApiService
 
     init {
-        val loggingInterceptor = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
-        }
+        //val loggingInterceptor = HttpLoggingInterceptor().apply {
+        //    level = HttpLoggingInterceptor.Level.BODY
+       // }
 
         val client = OkHttpClient.Builder()
-            .addInterceptor(loggingInterceptor)
+            //.addInterceptor(loggingInterceptor)
             .build()
 
         val retrofit = Retrofit.Builder()
@@ -106,6 +110,30 @@ class RestClient(private val context: Context) {
                 onResult(SendColorsResult.UNKNOWN_ERROR, t)
             }
         })
+    }
+
+    fun uploadImage(imageFile: File, onResult: (ColorResponse?, Throwable?) -> Unit ) {
+        try {
+            val requestFile = imageFile.asRequestBody("image/*".toMediaTypeOrNull()) // Or specific type: "image/jpeg", "image/png"
+            val part = MultipartBody.Part.createFormData("image", imageFile.name, requestFile) // Use the actual file name
+
+            apiService.uploadImage(part).enqueue(object : Callback<ColorResponse> {
+                override fun onResponse(call: Call<ColorResponse>, response: Response<ColorResponse>) {
+                    if (response.isSuccessful) {
+                        onResult(response.body(), null)
+                    } else {
+                        onResult(null, Throwable(response.errorBody()?.string()))
+                    }
+                }
+
+                override fun onFailure(p0: Call<ColorResponse>, p1: Throwable) {
+                    onResult(null, p1)
+                }
+            })
+        } catch (e: Exception) {
+            e.printStackTrace()
+            onResult(null, e)
+        }
     }
 
     fun sendColors(

@@ -1,11 +1,10 @@
 package com.example.geoglow.viewmodel
 
 import android.app.Application
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
-import android.util.Log
-import android.widget.Toast
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.exifinterface.media.ExifInterface
@@ -24,6 +23,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
 
 class ColorViewModel(application: Application) : AndroidViewModel(application) {
@@ -83,6 +84,67 @@ class ColorViewModel(application: Application) : AndroidViewModel(application) {
             ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
         }
         return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+    }
+
+    private val restClient = RestClient(getApplication<Application>().applicationContext)
+
+    private fun bitmapToFile(context: Context, bitmap: Bitmap, fileName: String): File {
+        val file = File(context.cacheDir, "$fileName.png")
+        val outputStream = FileOutputStream(file)
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 50, outputStream)
+        outputStream.flush()
+        outputStream.close()
+        return file
+    }
+
+    fun uploadAndSetColorState(uri: Uri, imageMetadata: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val context = getApplication<Application>().applicationContext
+                context.contentResolver.openInputStream(uri)?.use { stream ->
+                    val bitmap: Bitmap = BitmapFactory.decodeStream(stream)
+                    val orientation = getExifOrientation(uri)
+                    val correctlyOrientedBitmap =
+                        rotateBitmap(bitmap, orientation)
+                    val imageFile = bitmapToFile(context, correctlyOrientedBitmap, "temp_image")
+
+                restClient.uploadImage(imageFile) { colorResponse, error ->
+                    if (colorResponse != null) {
+                        val colors = colorResponse.colors
+                        if (!colors.isNullOrEmpty()) {
+                            _colorState.update { currentState ->
+                                currentState.copy(
+                                    imageBitmap = correctlyOrientedBitmap.asImageBitmap(),
+                                    colorList = colors,
+                                    imageMetadataJson = imageMetadata
+                                )
+                            }
+                        } else {
+                            _colorState.update { currentState ->
+                                currentState.copy(
+                                    errorMessage = "No colors returned from the server."
+                                )
+                            }
+                        }
+                    } else if (error != null) {
+                        _colorState.update { currentState ->
+                            currentState.copy(
+                                errorMessage = "Image upload or color extraction failed: ${error.message}"
+                            )
+                        }
+                        error.printStackTrace()
+                    }
+                }
+            }
+            } catch (e: Exception) {
+                _colorState.update { currentState ->
+                    currentState.copy(
+                        errorMessage = "Failed to process the image: ${e.message}"
+                    )
+                }
+                e.printStackTrace()
+            }
+        }
     }
 
     fun setColorState(uri: Uri, imageMetadata: String) {
@@ -146,14 +208,11 @@ class ColorViewModel(application: Application) : AndroidViewModel(application) {
                 dataStoreManager.groupId.first()
             }
 
-            Log.d("GroupID", groupId)
-
             restClient.getAllFriends(groupId) { friends, error ->
                 if (error != null) {
                     // Handle error
                 } else {
                     friends?.let { fetchedFriends ->
-                        Log.d("Nick", fetchedFriends.toString())
                         _friendList.update { fetchedFriends }
                         SharedPreferencesHelper.setFriendList(getApplication(), fetchedFriends)
                     }

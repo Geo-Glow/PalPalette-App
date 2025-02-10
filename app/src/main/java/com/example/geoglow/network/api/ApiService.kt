@@ -2,9 +2,11 @@ package com.example.geoglow.network.api
 
 import com.example.geoglow.data.model.ColorMultiPost
 import com.example.geoglow.data.model.ColorRequest
+import com.example.geoglow.data.model.ColorResponse
 import com.example.geoglow.data.model.Friend
 import com.example.geoglow.data.model.Message
 import com.example.geoglow.data.model.Timeout
+import okhttp3.MultipartBody
 import retrofit2.Call
 import retrofit2.http.*
 
@@ -12,6 +14,10 @@ interface ApiService {
 
     @GET("friends")
     fun getAllFriends(@Query("groupId") groupId: String?): Call<List<Friend>>
+
+    @Multipart
+    @POST("colors/upload")
+    fun uploadImage(@Part image: MultipartBody.Part): Call<ColorResponse>
 
     @GET("friends/{friendId}")
     fun getFriendById(@Path("friendId") friendId: String): Call<Friend>
