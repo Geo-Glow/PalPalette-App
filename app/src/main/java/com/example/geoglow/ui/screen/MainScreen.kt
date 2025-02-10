@@ -54,6 +54,7 @@ import com.google.gson.Gson
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import java.io.File
 import java.util.Objects
 
 @Composable
@@ -104,7 +105,10 @@ fun MainScreen(navController: NavController, viewModel: ColorViewModel) {
             val gson = Gson()
             val jsonString = gson.toJson(jsonMap)
 
-            viewModel.setColorState(uri, jsonString)
+            //val imageFile = File(uri.path!!)
+
+            //viewModel.setColorState(uri, jsonString)
+            viewModel.uploadAndSetColorState(uri, jsonString)
             navController.navigate(Screen.ImageScreen.route)
         } catch (e: Exception) {
             Log.e("MainScreen", "Error reading metadata", e)

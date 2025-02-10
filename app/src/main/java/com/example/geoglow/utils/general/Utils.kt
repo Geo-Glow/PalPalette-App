@@ -3,6 +3,7 @@ package com.example.geoglow.utils.general
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Color
+import android.util.Log
 import androidx.palette.graphics.Palette
 import java.io.File
 import java.util.Locale
