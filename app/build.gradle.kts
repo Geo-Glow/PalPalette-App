@@ -132,4 +132,6 @@ dependencies {
     implementation("com.google.accompanist:accompanist-flowlayout:0.36.0")
 
     implementation("com.drewnoakes:metadata-extractor:2.19.0")
+
+    implementation ("org.opencv:opencv:4.9.0")
 }

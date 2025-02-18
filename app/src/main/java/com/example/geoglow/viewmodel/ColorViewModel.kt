@@ -23,6 +23,11 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.opencv.android.Utils
+import org.opencv.core.CvType
+import org.opencv.core.Mat
+import org.opencv.core.MatOfInt
+import org.opencv.imgcodecs.Imgcodecs
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -52,9 +57,7 @@ class ColorViewModel(application: Application) : AndroidViewModel(application) {
     // Get Image rotation from exif tags
     private fun getExifOrientation(uri: Uri): Int {
         return try {
-            val inputStream =
-                getApplication<Application>().applicationContext.contentResolver.openInputStream(uri)
-            inputStream?.use {
+            getApplication<Application>().applicationContext.contentResolver.openInputStream(uri)?.use {
                 val exifInterface = ExifInterface(it)
                 exifInterface.getAttributeInt(
                     ExifInterface.TAG_ORIENTATION,
@@ -88,54 +91,64 @@ class ColorViewModel(application: Application) : AndroidViewModel(application) {
 
     private val restClient = RestClient(getApplication<Application>().applicationContext)
 
-    private fun bitmapToFile(context: Context, bitmap: Bitmap, fileName: String): File {
-        val file = File(context.cacheDir, "$fileName.png")
-        val outputStream = FileOutputStream(file)
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 50, outputStream)
-        outputStream.flush()
-        outputStream.close()
-        return file
+    /*
+    Important: The flow of compressing the image need to be the same as in the IOS Version
+     */
+    private suspend fun bitmapToFile(context: Context, bitmap: Bitmap, fileName: String): File = withContext(Dispatchers.IO) {
+        // Convert Bitmap to Mat
+        val mat = Mat(bitmap.height, bitmap.width, CvType.CV_8UC4)
+        Utils.bitmapToMat(bitmap, mat)
+
+        val compressionParams = MatOfInt(Imgcodecs.IMWRITE_JPEG_QUALITY, 50)
+
+        val file = File(context.cacheDir, "$fileName.jpg")
+
+        Imgcodecs.imwrite(file.absolutePath, mat, compressionParams)
+
+        file
     }
 
     fun uploadAndSetColorState(uri: Uri, imageMetadata: String) {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(Dispatchers.Main) {
             try {
                 val context = getApplication<Application>().applicationContext
-                context.contentResolver.openInputStream(uri)?.use { stream ->
-                    val bitmap: Bitmap = BitmapFactory.decodeStream(stream)
-                    val orientation = getExifOrientation(uri)
-                    val correctlyOrientedBitmap =
-                        rotateBitmap(bitmap, orientation)
-                    val imageFile = bitmapToFile(context, correctlyOrientedBitmap, "temp_image")
+                withContext(Dispatchers.IO) {
+                    context.contentResolver.openInputStream(uri)?.use { stream ->
+                        val bitmap: Bitmap = BitmapFactory.decodeStream(stream)
+                        val orientation = getExifOrientation(uri)
+                        val correctlyOrientedBitmap =
+                            rotateBitmap(bitmap, orientation)
+                        val imageFile = bitmapToFile(context, correctlyOrientedBitmap, "temp_image")
 
-                restClient.uploadImage(imageFile) { colorResponse, error ->
-                    if (colorResponse != null) {
-                        val colors = colorResponse.colors
-                        if (!colors.isNullOrEmpty()) {
-                            _colorState.update { currentState ->
-                                currentState.copy(
-                                    imageBitmap = correctlyOrientedBitmap.asImageBitmap(),
-                                    colorList = colors,
-                                    imageMetadataJson = imageMetadata
-                                )
-                            }
-                        } else {
-                            _colorState.update { currentState ->
-                                currentState.copy(
-                                    errorMessage = "No colors returned from the server."
-                                )
+                        restClient.uploadImage(imageFile) { colorResponse, error ->
+                            if (colorResponse != null) {
+                                val colors = colorResponse.colors
+                                if (!colors.isNullOrEmpty()) {
+                                    _colorState.update { currentState ->
+                                        currentState.copy(
+                                            imageBitmap = correctlyOrientedBitmap.asImageBitmap(),
+                                            colorList = colors,
+                                            imageMetadataJson = imageMetadata
+                                        )
+                                    }
+                                } else {
+                                    _colorState.update { currentState ->
+                                        currentState.copy(
+                                            errorMessage = "No colors returned from the server."
+                                        )
+                                    }
+                                }
+                            } else if (error != null) {
+                                _colorState.update { currentState ->
+                                    currentState.copy(
+                                        errorMessage = "Image upload or color extraction failed: ${error.message}"
+                                    )
+                                }
+                                error.printStackTrace()
                             }
                         }
-                    } else if (error != null) {
-                        _colorState.update { currentState ->
-                            currentState.copy(
-                                errorMessage = "Image upload or color extraction failed: ${error.message}"
-                            )
-                        }
-                        error.printStackTrace()
                     }
                 }
-            }
             } catch (e: Exception) {
                 _colorState.update { currentState ->
                     currentState.copy(
