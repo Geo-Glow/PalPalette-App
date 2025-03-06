@@ -12,11 +12,11 @@ rootProject.file("local.properties").takeIf { it.exists() }?.apply {
 }
 
 android {
-    namespace = "com.example.geoglow"
+    namespace = "com.app.geoglow"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.geoglow"
+        applicationId = "com.app.geoglow"
         minSdk = 24
         targetSdk = 35
         versionCode = 1
