@@ -28,6 +28,8 @@ import org.opencv.core.CvType
 import org.opencv.core.Mat
 import org.opencv.core.MatOfInt
 import org.opencv.imgcodecs.Imgcodecs
+import org.opencv.imgproc.Imgproc.COLOR_RGB2BGR
+import org.opencv.imgproc.Imgproc.cvtColor
 import java.io.File
 import java.io.IOException
 
@@ -101,7 +103,7 @@ class ColorViewModel(application: Application) : AndroidViewModel(application) {
         val compressionParams = MatOfInt(Imgcodecs.IMWRITE_JPEG_QUALITY, 50)
 
         val file = File(context.cacheDir, "$fileName.jpg")
-
+        cvtColor(mat, mat, COLOR_RGB2BGR)
         Imgcodecs.imwrite(file.absolutePath, mat, compressionParams)
 
         file
